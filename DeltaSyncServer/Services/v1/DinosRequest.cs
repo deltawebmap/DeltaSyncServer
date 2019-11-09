@@ -1,0 +1,196 @@
+﻿using ArkWebMapGatewayClient.Messages;
+using DeltaSyncServer.Entities;
+using DeltaSyncServer.Entities.DinoPayload;
+using LibDeltaSystem.Db.Content;
+using LibDeltaSystem.Db.System;
+using LibDeltaSystem.RPC.Payloads;
+using MongoDB.Driver;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using static LibDeltaSystem.RPC.Payloads.RPCPayloadDinosaurUpdateEvent;
+
+namespace DeltaSyncServer.Services.v1
+{
+    public static class DinosRequest
+    {
+        /// <summary>
+        /// To: /v1/dinos
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns></returns>
+        public static async Task OnHttpRequest(Microsoft.AspNetCore.Http.HttpContext e)
+        {
+            //Authenticate
+            DbServer server = await Program.ForceAuthServer(e);
+            if (server == null)
+                return;
+            
+            //Read payload data
+            DinoRequestData s = Program.DecodeStreamAsJson<DinoRequestData>(e.Request.Body);
+
+            //Get primal data
+            var primal = await Program.primal_data.LoadFullPackage(server.mods);
+
+            //Loop through and add dinosaurs
+            List<WriteModel<DbDino>> dinoActions = new List<WriteModel<DbDino>>();
+            List<WriteModel<DbItem>> itemActions = new List<WriteModel<DbItem>>();
+            foreach (var d in s.dinos)
+            {
+                //Get dino entry
+                var entry = primal.GetDinoEntry(Program.TrimArkClassname(d.classname));
+                if (entry == null)
+                    continue;
+
+                //Create dino ID
+                ulong dinoId = Program.GetMultipartID(uint.Parse(d.id_1), uint.Parse(d.id_2));
+
+                //Convert colors to a readable hex code
+                string[] colors = new string[d.colors.Length];
+                for(int i = 0; i<d.colors.Length; i++)
+                {
+                    byte color = d.colors[i];
+                    if (color <= 0 || color > ArkStatics.ARK_COLOR_IDS.Length)
+                        colors[i] = "#FFFFFF";
+                    else
+                        colors[i] = ArkStatics.ARK_COLOR_IDS[d.colors[i] - 1]; //Look this up in the color table to get the nice HTML value.
+                }
+
+                //If the dino name is blank, fetch it from the dino entry
+                if (d.name.Length <= 1)
+                    d.name = entry.screen_name;
+
+                //Convert this to it's DbDino equivalent
+                DbDino dino = new DbDino
+                {
+                    baby_age = d.baby_age,
+                    base_level = d.base_level,
+                    base_levelups_applied = ConvertToDinoStats(d.points_wild),
+                    classname = Program.TrimArkClassname(d.classname),
+                    colors = colors,
+                    current_stats = ConvertToDinoStats(d.current_stats),
+                    max_stats = ConvertToDinoStats(d.max_stats),
+                    dino_id = dinoId,
+                    experience = d.experience,
+                    imprint_quality = d.imprint_quality,
+                    is_baby = d.baby,
+                    is_female = d.is_female,
+                    is_tamed = true,
+                    level = d.base_level + d.extra_level,
+                    location = d.location,
+                    next_imprint_time = d.next_cuddle,
+                    revision_id = s.revision_id,
+                    server_id = server.id,
+                    status = d.status,
+                    tamed_levelups_applied = ConvertToDinoStats(d.points_tamed),
+                    tamed_name = d.name,
+                    tamer_name = d.tamer,
+                    taming_effectiveness = 0,
+                    tribe_id = d.tribe_id
+                };
+
+                {
+                    //Create filter for updating this dino
+                    var filterBuilder = Builders<DbDino>.Filter;
+                    var filter = filterBuilder.Eq("dino_id", dino.dino_id) & filterBuilder.Eq("server_id", server.id);
+
+                    //Now, add (or insert) this into the database
+                    var a = new ReplaceOneModel<DbDino>(filter, dino);
+                    a.IsUpsert = true;
+                    dinoActions.Add(a);
+                }
+
+                //Add this dino to the gateway queue
+                RPCPayloadDinosaurUpdateEvent gatewayMsg = new RPCPayloadDinosaurUpdateEvent
+                {
+                    dinos = new List<RPCPayloadDinosaurUpdateEvent_Dino>{
+                        new RPCPayloadDinosaurUpdateEvent_Dino
+                        {
+                            classname = dino.classname,
+                            icon = entry.icon.image_thumb_url,
+                            id = dino.dino_id.ToString(),
+                            level = dino.level,
+                            name = dino.tamed_name,
+                            status = dino.status,
+                            x = dino.location.x,
+                            y = dino.location.y,
+                            z = dino.location.z
+                        }
+                    },
+                };
+                Program.conn.GetRPC().SendRPCMessageToTribe(LibDeltaSystem.RPC.RPCOpcode.DinosaurUpdateEvent, gatewayMsg, server, dino.tribe_id);
+
+                //Add items now
+                foreach(var i in d.items)
+                {
+                    //Convert item
+                    DbItem item = new DbItem
+                    {
+                        classname = Program.TrimArkClassname(i.classname),
+                        crafter_name = "",
+                        crafter_tribe = "",
+                        is_blueprint = i.blueprint,
+                        is_engram = false,
+                        item_id = Program.GetMultipartID(i.id1, i.id2),
+                        last_durability_decrease_time = -1,
+                        parent_id = dino.dino_id.ToString(),
+                        parent_type = DbInventoryParentType.Dino,
+                        saved_durability = i.durability,
+                        server_id = server.id,
+                        stack_size = i.count,
+                        tribe_id = dino.tribe_id,
+                        revision_id = s.revision_id
+                    };
+
+                    {
+                        //Create filter for updating this dino
+                        var filterBuilder = Builders<DbItem>.Filter;
+                        var filter = filterBuilder.Eq("item_id", item.item_id) & filterBuilder.Eq("server_id", server.id);
+
+                        //Now, add (or insert) this into the database
+                        var a = new ReplaceOneModel<DbItem>(filter, item);
+                        a.IsUpsert = true;
+                        itemActions.Add(a);
+                    }
+                }
+            }
+
+            //Apply actions
+            if (dinoActions.Count > 0)
+            {
+                await Program.conn.content_dinos.BulkWriteAsync(dinoActions);
+                dinoActions.Clear();
+            }
+            if (itemActions.Count > 0)
+            {
+                await Program.conn.content_items.BulkWriteAsync(itemActions);
+                itemActions.Clear();
+            }
+
+            //Write finished
+            e.Response.StatusCode = 200;
+            await Program.WriteStringToStream(e.Response.Body, "OK");
+        }
+
+        private static DbArkDinosaurStats ConvertToDinoStats(Dictionary<string, float> data)
+        {
+            return new DbArkDinosaurStats
+            {
+                health = data["Health"],
+                stamina = data["Stamina"],
+                unknown1 = data["Torpidity"],
+                oxygen = data["Oxygen"],
+                food = data["Food"],
+                water = data["Water"],
+                unknown2 = data["Temperature"],
+                inventoryWeight = data["Weight"],
+                meleeDamageMult = data["MeleeDamageMultiplier"],
+                movementSpeedMult = data["SpeedMultiplier"],
+                unknown3 = data["TemperatureFortitude"],
+                unknown4 = data["CraftingSpeedMultiplier"]
+            };
+        }
+    }
+}
