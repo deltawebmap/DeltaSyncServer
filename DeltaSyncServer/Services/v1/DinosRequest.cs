@@ -1,5 +1,4 @@
-﻿using ArkWebMapGatewayClient.Messages;
-using DeltaSyncServer.Entities;
+﻿using DeltaSyncServer.Entities;
 using DeltaSyncServer.Entities.DinoPayload;
 using LibDeltaSystem.Db.Content;
 using LibDeltaSystem.Db.System;
@@ -37,6 +36,7 @@ namespace DeltaSyncServer.Services.v1
             //Loop through and add dinosaurs
             List<WriteModel<DbDino>> dinoActions = new List<WriteModel<DbDino>>();
             List<WriteModel<DbItem>> itemActions = new List<WriteModel<DbItem>>();
+            Dictionary<int, List<RPCPayloadDinosaurUpdateEvent_Dino>> rpcDinos = new Dictionary<int, List<RPCPayloadDinosaurUpdateEvent_Dino>>(); //Events to send on the RPC, by tribe ID
             foreach (var d in s.dinos)
             {
                 //Get dino entry
@@ -102,25 +102,23 @@ namespace DeltaSyncServer.Services.v1
                     dinoActions.Add(a);
                 }
 
-                //Add this dino to the gateway queue
-                RPCPayloadDinosaurUpdateEvent gatewayMsg = new RPCPayloadDinosaurUpdateEvent
+                //Add this dino to the RPC message queue
+                var rpcDino = new RPCPayloadDinosaurUpdateEvent_Dino
                 {
-                    dinos = new List<RPCPayloadDinosaurUpdateEvent_Dino>{
-                        new RPCPayloadDinosaurUpdateEvent_Dino
-                        {
-                            classname = dino.classname,
-                            icon = entry.icon.image_thumb_url,
-                            id = dino.dino_id.ToString(),
-                            level = dino.level,
-                            name = dino.tamed_name,
-                            status = dino.status,
-                            x = dino.location.x,
-                            y = dino.location.y,
-                            z = dino.location.z
-                        }
-                    },
+                    classname = dino.classname,
+                    icon = entry.icon.image_thumb_url,
+                    id = dino.dino_id.ToString(),
+                    level = dino.level,
+                    name = dino.tamed_name,
+                    status = dino.status,
+                    x = dino.location.x,
+                    y = dino.location.y,
+                    z = dino.location.z,
+                    species = entry.screen_name
                 };
-                Program.conn.GetRPC().SendRPCMessageToTribe(LibDeltaSystem.RPC.RPCOpcode.DinosaurUpdateEvent, gatewayMsg, server, dino.tribe_id);
+                if (!rpcDinos.ContainsKey(dino.tribe_id))
+                    rpcDinos.Add(dino.tribe_id, new List<RPCPayloadDinosaurUpdateEvent_Dino>());
+                rpcDinos[dino.tribe_id].Add(rpcDino);
 
                 //Add items now
                 foreach(var i in d.items)
@@ -167,6 +165,16 @@ namespace DeltaSyncServer.Services.v1
             {
                 await Program.conn.content_items.BulkWriteAsync(itemActions);
                 itemActions.Clear();
+            }
+
+            //Send RPC messages
+            foreach(var rpc in rpcDinos)
+            {
+                RPCPayloadDinosaurUpdateEvent rpcMessage = new RPCPayloadDinosaurUpdateEvent
+                {
+                    dinos = rpc.Value
+                };
+                Program.conn.GetRPC().SendRPCMessageToTribe(LibDeltaSystem.RPC.RPCOpcode.DinosaurUpdateEvent, rpcMessage, server, rpc.Key);
             }
 
             //Write finished

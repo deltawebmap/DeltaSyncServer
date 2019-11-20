@@ -1,6 +1,7 @@
 ﻿using DeltaSyncServer.Entities.ProfilesPayload;
 using LibDeltaSystem.Db.Content;
 using LibDeltaSystem.Db.System;
+using LibDeltaSystem.RPC.Payloads;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,8 @@ namespace DeltaSyncServer.Services.v1
             //Add all player profiles
             List<WriteModel<DbPlayerProfile>> playerActions = new List<WriteModel<DbPlayerProfile>>();
             List<WriteModel<DbTribe>> tribeActions = new List<WriteModel<DbTribe>>();
+            List<RPCPayloadOnlinePlayers_Player> rpcPlayers = new List<RPCPayloadOnlinePlayers_Player>();
+            Dictionary<int, RPCPayloadOnlinePlayers_Tribe> rpcTribes = new Dictionary<int, RPCPayloadOnlinePlayers_Tribe>();
             foreach (var p in s.player_profiles)
             {
                 //Fetch Steam info
@@ -58,6 +61,14 @@ namespace DeltaSyncServer.Services.v1
                 var a = new ReplaceOneModel<DbPlayerProfile>(filter, profile);
                 a.IsUpsert = true;
                 playerActions.Add(a);
+
+                //Add to RPC messages
+                rpcPlayers.Add(new RPCPayloadOnlinePlayers_Player
+                {
+                    icon = steam.icon_url,
+                    name = steam.name,
+                    tribe_id = p.tribe_id
+                });
             }
 
             //Add all tribe profiles
@@ -80,6 +91,12 @@ namespace DeltaSyncServer.Services.v1
                 var a = new ReplaceOneModel<DbTribe>(filter, tribe);
                 a.IsUpsert = true;
                 tribeActions.Add(a);
+
+                //Add to RPC messages
+                rpcTribes.Add(t.tribe_id, new RPCPayloadOnlinePlayers_Tribe
+                {
+                    name = t.name
+                });
             }
 
             //Apply actions
@@ -93,6 +110,13 @@ namespace DeltaSyncServer.Services.v1
                 await Program.conn.content_player_profiles.BulkWriteAsync(playerActions);
                 playerActions.Clear();
             }
+
+            //Send RPC message
+            Program.conn.GetRPC().SendRPCMessageToServer(LibDeltaSystem.RPC.RPCOpcode.PlayerListChanged, new RPCPayloadOnlinePlayers
+            {
+                players = rpcPlayers,
+                tribes = rpcTribes
+            }, server);
 
             //Write finished
             e.Response.StatusCode = 200;

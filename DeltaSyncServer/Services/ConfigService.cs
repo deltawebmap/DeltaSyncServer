@@ -49,12 +49,28 @@ namespace DeltaSyncServer.Services
                 Program.conn.system_servers.InsertOne(server);
             }
 
+            //Generate a state token
+            string stateToken = SecureStringTool.GenerateSecureString(24);
+            while (!await SecureStringTool.CheckStringUniquenessAsync<DbSyncSavedState>(stateToken, Program.conn.system_sync_states))
+                stateToken = SecureStringTool.GenerateSecureString(24);
+
+            //Create a state
+            DbSyncSavedState state = new DbSyncSavedState
+            {
+                mod_version = 0,
+                server_id = server.id,
+                system_version = 0,
+                time = DateTime.UtcNow,
+                token = stateToken
+            };
+            await Program.conn.system_sync_states.InsertOneAsync(state);
+
             //Create a fake response for now
             ResponsePayload response = new ResponsePayload
             {
                 token = server.token,
                 delta_config = new ModRemoteConfig(),
-                state = "TEST_STATE",
+                state = stateToken,
                 claimer_name = null,
                 has_claim_token = false,
                 is_claimed = false,

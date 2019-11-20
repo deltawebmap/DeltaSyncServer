@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeltaSyncServer", "DeltaSyn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibDeltaSystem", "..\LibDeltaSystem\LibDeltaSystem\LibDeltaSystem.csproj", "{C1C3363C-0D51-4243-8A9A-C144E76D99EC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ArkWebMapGatewayClient", "..\ArkWebMap\backend\ArkWebMapGatewayClient\ArkWebMapGatewayClient.csproj", "{6237A2F6-FA80-4DAE-9F4A-9BE6C83B24E6}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,10 +21,6 @@ Global
 		{C1C3363C-0D51-4243-8A9A-C144E76D99EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1C3363C-0D51-4243-8A9A-C144E76D99EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C1C3363C-0D51-4243-8A9A-C144E76D99EC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6237A2F6-FA80-4DAE-9F4A-9BE6C83B24E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6237A2F6-FA80-4DAE-9F4A-9BE6C83B24E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6237A2F6-FA80-4DAE-9F4A-9BE6C83B24E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6237A2F6-FA80-4DAE-9F4A-9BE6C83B24E6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

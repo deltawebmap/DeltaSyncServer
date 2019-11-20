@@ -1,6 +1,5 @@
 ﻿using LibDeltaSystem;
 using LibDeltaSystem.Db.System;
-using ArkWebMapGatewayClient.Sender;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Newtonsoft.Json;

@@ -11,7 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ArkWebMap\backend\ArkWebMapGatewayClient\ArkWebMapGatewayClient.csproj" />
     <ProjectReference Include="..\..\LibDeltaSystem\LibDeltaSystem\LibDeltaSystem.csproj" />
   </ItemGroup>
 
