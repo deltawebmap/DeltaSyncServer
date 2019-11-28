@@ -16,6 +16,8 @@ namespace DeltaSyncServer
         public static DeltaConnection conn;
         public static DeltaPrimalDataCache primal_data;
 
+        public static Random rand;
+
         public const string CLIENT_NAME = "sync-mod-prod";
         public const int VERSION_MAJOR = 0;
         public const int VERSION_MINOR = 1;
@@ -33,6 +35,9 @@ namespace DeltaSyncServer
 
             //Set up primal data
             primal_data = new DeltaPrimalDataCache();
+
+            //Set up random
+            rand = new Random();
 
             //Start HTTP server
             var host = new WebHostBuilder()

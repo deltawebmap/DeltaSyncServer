@@ -14,5 +14,6 @@ namespace DeltaSyncServer.Entities
         public float refresh_structure_queue_policy = 60*2;
         public int max_structure_sync_size = 30; //Number that can be sent at once
         public int max_dino_sync_size = 5; //Number that can be sent at once
+        public float egg_sync_policy = 45;
     }
 }

@@ -112,11 +112,11 @@ namespace DeltaSyncServer.Services.v1
             }
 
             //Send RPC message
-            Program.conn.GetRPC().SendRPCMessageToServer(LibDeltaSystem.RPC.RPCOpcode.PlayerListChanged, new RPCPayloadOnlinePlayers
+            /*Program.conn.GetRPC().SendRPCMessageToServer(LibDeltaSystem.RPC.RPCOpcode.PlayerListChanged, new RPCPayloadOnlinePlayers
             {
                 players = rpcPlayers,
                 tribes = rpcTribes
-            }, server);
+            }, server);*/
 
             //Write finished
             e.Response.StatusCode = 200;
