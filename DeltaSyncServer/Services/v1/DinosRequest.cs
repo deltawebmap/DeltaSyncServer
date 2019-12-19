@@ -123,35 +123,7 @@ namespace DeltaSyncServer.Services.v1
                 //Add items now
                 foreach(var i in d.items)
                 {
-                    //Convert item
-                    DbItem item = new DbItem
-                    {
-                        classname = Program.TrimArkClassname(i.classname),
-                        crafter_name = "",
-                        crafter_tribe = "",
-                        is_blueprint = i.blueprint,
-                        is_engram = false,
-                        item_id = Program.GetMultipartID(i.id1, i.id2),
-                        last_durability_decrease_time = -1,
-                        parent_id = dino.dino_id.ToString(),
-                        parent_type = DbInventoryParentType.Dino,
-                        saved_durability = i.durability,
-                        server_id = server.id,
-                        stack_size = i.count,
-                        tribe_id = dino.tribe_id,
-                        revision_id = s.revision_id
-                    };
-
-                    {
-                        //Create filter for updating this dino
-                        var filterBuilder = Builders<DbItem>.Filter;
-                        var filter = filterBuilder.Eq("item_id", item.item_id) & filterBuilder.Eq("server_id", server.id);
-
-                        //Now, add (or insert) this into the database
-                        var a = new ReplaceOneModel<DbItem>(filter, item);
-                        a.IsUpsert = true;
-                        itemActions.Add(a);
-                    }
+                    Tools.InventoryManager.QueueInventoryItem(itemActions, i, dino.dino_id.ToString(), DbInventoryParentType.Dino, server.id, dino.tribe_id, dino.revision_id);
                 }
             }
 
@@ -161,11 +133,7 @@ namespace DeltaSyncServer.Services.v1
                 await Program.conn.content_dinos.BulkWriteAsync(dinoActions);
                 dinoActions.Clear();
             }
-            if (itemActions.Count > 0)
-            {
-                await Program.conn.content_items.BulkWriteAsync(itemActions);
-                itemActions.Clear();
-            }
+            await Tools.InventoryManager.UpdateInventoryItems(itemActions, Program.conn);
 
             //Send RPC messages
             foreach(var rpc in rpcDinos)

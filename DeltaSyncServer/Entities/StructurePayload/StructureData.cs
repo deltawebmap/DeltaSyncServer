@@ -13,5 +13,6 @@ namespace DeltaSyncServer.Entities.StructurePayload
         public float max_health;
         public float health;
         public int id;
+        public StructureInventoryData inventory;
     }
 }

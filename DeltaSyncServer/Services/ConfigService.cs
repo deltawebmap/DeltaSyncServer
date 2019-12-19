@@ -94,7 +94,8 @@ namespace DeltaSyncServer.Services
                 state = stateToken,
                 revision_id_dinos = server.revision_id_dinos,
                 revision_id_structures = server.revision_id_structures,
-                ini_settings = iniSettings
+                ini_settings = iniSettings,
+                update_speed_multiplier = server.update_speed_multiplier
             };
 
             //Write response
@@ -152,6 +153,7 @@ namespace DeltaSyncServer.Services
             public int revision_id_structures;
             public ModRemoteConfig delta_config;
             public List<ResponsePayload_ConfigRequest> ini_settings;
+            public float update_speed_multiplier;
         }
 
         class ResponsePayload_ConfigRequest

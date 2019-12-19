@@ -30,7 +30,7 @@ namespace DeltaSyncServer
         static async Task MainAsync()
         {
             //Connect to database
-            conn = new DeltaConnection(@"E:\database_config.json", CLIENT_NAME, VERSION_MAJOR, VERSION_MINOR);
+            conn = new DeltaConnection(@"C:\Users\Roman\Documents\delta_dev\backend\database_config.json", CLIENT_NAME, VERSION_MAJOR, VERSION_MINOR);
             await conn.Connect();
 
             //Set up primal data
@@ -44,7 +44,7 @@ namespace DeltaSyncServer
                 .UseKestrel(options =>
                 {
                     IPAddress addr = IPAddress.Any;
-                    options.Listen(addr, 43289);
+                    options.Listen(addr, 43287);
                 })
                 .UseStartup<Program>()
                 .Build();
