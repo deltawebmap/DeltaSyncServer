@@ -11,7 +11,7 @@ namespace DeltaSyncServer.Tools
 {
     public static class InventoryManager
     {
-        public static void QueueInventoryItem(List<WriteModel<DbItem>> itemActions, DinoItem i, string parent_id, DbInventoryParentType parent_type, string server_id, int tribe_id, int revision_id)
+        public static void QueueInventoryItem(List<WriteModel<DbItem>> itemActions, DinoItem i, string parent_id, DbInventoryParentType parent_type, string server_id, int tribe_id, ulong revision_id, byte revision_index)
         {
             //Convert item
             DbItem item = new DbItem
@@ -29,7 +29,8 @@ namespace DeltaSyncServer.Tools
                 server_id = server_id,
                 stack_size = i.count,
                 tribe_id = tribe_id,
-                revision_id = revision_id
+                revision_id = revision_id,
+                revision_type = revision_index
             };
 
             {

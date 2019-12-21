@@ -44,11 +44,10 @@ namespace DeltaSyncServer.Services
                     image_url = DbServer.StaticGetPlaceholderIcon(request.name),
                     token = token,
                     has_custom_image = false,
-                    revision_id_dinos = 0,
-                    revision_id_structures = 0,
                     conn = Program.conn,
                     latest_server_map = request.map,
-                    mods = new string[0]
+                    mods = new string[0],
+                    lock_flags = 1
                 };
 
                 //Insert
@@ -92,8 +91,7 @@ namespace DeltaSyncServer.Services
                 token = server.token,
                 delta_config = new ModRemoteConfig(),
                 state = stateToken,
-                revision_id_dinos = server.revision_id_dinos,
-                revision_id_structures = server.revision_id_structures,
+                revision_ids = server.revision_ids,
                 ini_settings = iniSettings,
                 update_speed_multiplier = server.update_speed_multiplier
             };
@@ -149,11 +147,10 @@ namespace DeltaSyncServer.Services
         {
             public string token;
             public string state;
-            public int revision_id_dinos;
-            public int revision_id_structures;
             public ModRemoteConfig delta_config;
             public List<ResponsePayload_ConfigRequest> ini_settings;
             public float update_speed_multiplier;
+            public ulong[] revision_ids;
         }
 
         class ResponsePayload_ConfigRequest

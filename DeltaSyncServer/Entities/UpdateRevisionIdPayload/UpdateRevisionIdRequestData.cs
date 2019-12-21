@@ -6,7 +6,7 @@ namespace DeltaSyncServer.Entities.UpdateRevisionIdPayload
 {
     public class UpdateRevisionIdRequestData
     {
-        public string name;
-        public int value;
+        public byte key;
+        public ulong value;
     }
 }

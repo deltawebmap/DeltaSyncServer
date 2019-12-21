@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\LibDeltaSystem\LibDeltaSystem\LibDeltaSystem.csproj" />
+    <ProjectReference Include="..\ARKDinoDataReader\ARKDinoDataReader.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2046
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeltaSyncServer", "DeltaSyncServer\DeltaSyncServer.csproj", "{05695F2E-6AF1-445E-A9D6-10A80150821D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeltaSyncServer", "DeltaSyncServer\DeltaSyncServer.csproj", "{05695F2E-6AF1-445E-A9D6-10A80150821D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibDeltaSystem", "..\LibDeltaSystem\LibDeltaSystem\LibDeltaSystem.csproj", "{C1C3363C-0D51-4243-8A9A-C144E76D99EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ARKDinoDataReader", "ARKDinoDataReader\ARKDinoDataReader.csproj", "{71C2DB94-42C1-4A67-873E-052A0ED6A86F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{C1C3363C-0D51-4243-8A9A-C144E76D99EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1C3363C-0D51-4243-8A9A-C144E76D99EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C1C3363C-0D51-4243-8A9A-C144E76D99EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71C2DB94-42C1-4A67-873E-052A0ED6A86F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71C2DB94-42C1-4A67-873E-052A0ED6A86F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71C2DB94-42C1-4A67-873E-052A0ED6A86F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71C2DB94-42C1-4A67-873E-052A0ED6A86F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -26,9 +26,9 @@ namespace DeltaSyncServer.Services.v1
             DbServer server = await Program.ForceAuthServer(e);
             if (server == null)
                 return;
-            
+
             //Read payload data
-            DinoRequestData s = Program.DecodeStreamAsJson<DinoRequestData>(e.Request.Body);
+            RevisionMappedDataPutRequest<DinoData> s = Program.DecodeStreamAsJson<RevisionMappedDataPutRequest<DinoData>>(e.Request.Body);
 
             //Get primal data
             var primal = await Program.primal_data.LoadFullPackage(server.mods);
@@ -37,7 +37,7 @@ namespace DeltaSyncServer.Services.v1
             List<WriteModel<DbDino>> dinoActions = new List<WriteModel<DbDino>>();
             List<WriteModel<DbItem>> itemActions = new List<WriteModel<DbItem>>();
             Dictionary<int, List<RPCPayloadDinosaurUpdateEvent_Dino>> rpcDinos = new Dictionary<int, List<RPCPayloadDinosaurUpdateEvent_Dino>>(); //Events to send on the RPC, by tribe ID
-            foreach (var d in s.dinos)
+            foreach (var d in s.data)
             {
                 //Get dino entry
                 var entry = primal.GetDinoEntry(Program.TrimArkClassname(d.classname));
@@ -82,6 +82,7 @@ namespace DeltaSyncServer.Services.v1
                     location = d.location,
                     next_imprint_time = d.next_cuddle,
                     revision_id = s.revision_id,
+                    revision_type = s.revision_index,
                     server_id = server.id,
                     status = d.status,
                     tamed_levelups_applied = ConvertToDinoStats(d.points_tamed),
@@ -123,7 +124,7 @@ namespace DeltaSyncServer.Services.v1
                 //Add items now
                 foreach(var i in d.items)
                 {
-                    Tools.InventoryManager.QueueInventoryItem(itemActions, i, dino.dino_id.ToString(), DbInventoryParentType.Dino, server.id, dino.tribe_id, dino.revision_id);
+                    Tools.InventoryManager.QueueInventoryItem(itemActions, i, dino.dino_id.ToString(), DbInventoryParentType.Dino, server.id, dino.tribe_id, dino.revision_id, dino.revision_type);
                 }
             }
 

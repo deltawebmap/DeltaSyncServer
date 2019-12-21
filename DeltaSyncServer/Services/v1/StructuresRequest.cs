@@ -1,4 +1,5 @@
-﻿using DeltaSyncServer.Entities.StructurePayload;
+﻿using DeltaSyncServer.Entities;
+using DeltaSyncServer.Entities.StructurePayload;
 using LibDeltaSystem.Db.Content;
 using LibDeltaSystem.Db.System;
 using MongoDB.Driver;
@@ -25,12 +26,12 @@ namespace DeltaSyncServer.Services.v1
                 return;
 
             //Read structures data
-            StructureRequestData payload = Program.DecodeStreamAsJson<StructureRequestData>(e.Request.Body);
+            RevisionMappedDataPutRequest<StructureData> payload = Program.DecodeStreamAsJson<RevisionMappedDataPutRequest<StructureData>>(e.Request.Body);
 
             //Convert all structures
             List<WriteModel<DbStructure>> structureActions = new List<WriteModel<DbStructure>>();
             List<WriteModel<DbItem>> itemActions = new List<WriteModel<DbItem>>();
-            foreach (var s in payload.structures)
+            foreach (var s in payload.data)
             {
                 //Ignore if no tribe ID is set
                 if (s.tribe == 0)
@@ -50,6 +51,7 @@ namespace DeltaSyncServer.Services.v1
                     structure_id = s.id,
                     tribe_id = s.tribe,
                     revision_id = payload.revision_id,
+                    revision_type = payload.revision_index,
                     custom_name = null
                 };
 
@@ -67,11 +69,11 @@ namespace DeltaSyncServer.Services.v1
                     //Add items
                     foreach (var i in s.inventory.items)
                     {
-                        Tools.InventoryManager.QueueInventoryItem(itemActions, i, structure.structure_id.ToString(), DbInventoryParentType.Structure, server.id, structure.tribe_id, structure.revision_id);
+                        Tools.InventoryManager.QueueInventoryItem(itemActions, i, structure.structure_id.ToString(), DbInventoryParentType.Structure, server.id, structure.tribe_id, structure.revision_id, structure.revision_type);
                     }
                 }
 
-                //Create filter for updating this dino
+                //Create filter for updating this structure
                 var filterBuilder = Builders<DbStructure>.Filter;
                 var filter = filterBuilder.Eq("structure_id", s.id) & filterBuilder.Eq("server_id", server.id);
 
