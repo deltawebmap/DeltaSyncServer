@@ -26,6 +26,8 @@ namespace DeltaSyncServer
                     await ProfilesRequest.OnHttpRequest(e);
                 else if (e.Request.Path == "/v1/players")
                     await PlayersRequest.OnHttpRequest(e);
+                else if (e.Request.Path == "/v1/cryo")
+                    await CryoRequest.OnHttpRequest(e);
                 else if (e.Request.Path == "/v1/eggs")
                     await EggsRequest.OnHttpRequest(e);
                 else if (e.Request.Path == "/v1/settings")

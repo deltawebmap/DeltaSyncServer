@@ -15,6 +15,7 @@ namespace DeltaSyncServer.Services.v1
             DbServer server = await Program.ForceAuthServer(e);
             if (server == null)
                 return;
+            return; //TODO
 
             using (StreamReader sr = new StreamReader(e.Request.Body))
                 Console.WriteLine(await sr.ReadToEndAsync());

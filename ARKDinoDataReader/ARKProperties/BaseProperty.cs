@@ -36,6 +36,7 @@ namespace ARKDinoDataReader.ARKProperties
                 case "StrProperty": p = new StrProperty(); break;
                 case "UInt32Property": p = new UInt32Property(); break;
                 case "ByteProperty": p = new ByteProperty(); break;
+                case "DoubleProperty": p = new DoubleProperty(); break;
                 default: throw new Exception("Unexpected type " + type + "!");
             }
 
