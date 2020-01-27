@@ -8,8 +8,8 @@ namespace DeltaSyncServer.Entities.DinoPayload
     public class DinoData
     {
         public int tribe_id;
-        public string id_1;
-        public string id_2;
+        public int id_1; //actually a uint
+        public int id_2; //actually a uint
         public bool is_female;
         public byte[] colors;
         public string name;
@@ -17,8 +17,8 @@ namespace DeltaSyncServer.Entities.DinoPayload
         public string classname;
         public Dictionary<string, float> max_stats;
         public Dictionary<string, float> current_stats;
-        public Dictionary<string, float> points_wild; //actually an int
-        public Dictionary<string, float> points_tamed; //actually an int
+        public Dictionary<string, int> points_wild;
+        public Dictionary<string, int> points_tamed;
         public int extra_level;
         public int base_level;
         public float experience;
@@ -28,6 +28,5 @@ namespace DeltaSyncServer.Entities.DinoPayload
         public float imprint_quality;
         public DbLocation location;
         public string status;
-        public DinoItem[] items;
     }
 }

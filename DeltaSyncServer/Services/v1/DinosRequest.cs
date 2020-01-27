@@ -31,7 +31,7 @@ namespace DeltaSyncServer.Services.v1
             RevisionMappedDataPutRequest<DinoData> s = Program.DecodeStreamAsJson<RevisionMappedDataPutRequest<DinoData>>(e.Request.Body);
 
             //Get primal data
-            var primal = await Program.primal_data.LoadFullPackage(server.mods);
+            var primal = await Program.conn.GetPrimalDataPackage(server.mods);
 
             //Loop through and add dinosaurs
             List<WriteModel<DbDino>> dinoActions = new List<WriteModel<DbDino>>();
@@ -40,12 +40,12 @@ namespace DeltaSyncServer.Services.v1
             foreach (var d in s.data)
             {
                 //Get dino entry
-                var entry = primal.GetDinoEntry(Program.TrimArkClassname(d.classname));
+                var entry = await primal.GetDinoEntryByClssnameAsnyc(d.classname);
                 if (entry == null)
                     continue;
 
                 //Create dino ID
-                ulong dinoId = Program.GetMultipartID(uint.Parse(d.id_1), uint.Parse(d.id_2));
+                ulong dinoId = Program.GetMultipartID((uint)d.id_1, (uint)d.id_2);
 
                 //Convert colors to a readable hex code
                 string[] colors = new string[d.colors.Length];
@@ -67,11 +67,11 @@ namespace DeltaSyncServer.Services.v1
                 {
                     baby_age = d.baby_age,
                     base_level = d.base_level,
-                    base_levelups_applied = ConvertToDinoStats(d.points_wild),
+                    base_levelups_applied = ConvertToStatsInt(d.points_wild),
                     classname = Program.TrimArkClassname(d.classname),
                     colors = colors,
-                    current_stats = ConvertToDinoStats(d.current_stats),
-                    max_stats = ConvertToDinoStats(d.max_stats),
+                    current_stats = ConvertToStatsFloat(d.current_stats),
+                    max_stats = ConvertToStatsFloat(d.max_stats),
                     dino_id = dinoId,
                     experience = d.experience,
                     imprint_quality = d.imprint_quality,
@@ -85,7 +85,7 @@ namespace DeltaSyncServer.Services.v1
                     revision_type = s.revision_index,
                     server_id = server.id,
                     status = d.status,
-                    tamed_levelups_applied = ConvertToDinoStats(d.points_tamed),
+                    tamed_levelups_applied = ConvertToStatsInt(d.points_tamed),
                     tamed_name = d.name,
                     tamer_name = d.tamer,
                     taming_effectiveness = 0,
@@ -120,12 +120,6 @@ namespace DeltaSyncServer.Services.v1
                 if (!rpcDinos.ContainsKey(dino.tribe_id))
                     rpcDinos.Add(dino.tribe_id, new List<RPCPayloadDinosaurUpdateEvent_Dino>());
                 rpcDinos[dino.tribe_id].Add(rpcDino);
-
-                //Add items now
-                foreach(var i in d.items)
-                {
-                    Tools.InventoryManager.QueueInventoryItem(itemActions, i, dino.dino_id.ToString(), DbInventoryParentType.Dino, server.id, dino.tribe_id, dino.revision_id, dino.revision_type);
-                }
             }
 
             //Apply actions
@@ -168,6 +162,30 @@ namespace DeltaSyncServer.Services.v1
                 unknown3 = data["TemperatureFortitude"],
                 unknown4 = data["CraftingSpeedMultiplier"]
             };
+        }
+
+        private static int[] ConvertToStatsInt(Dictionary<string, int> data)
+        {
+            int[] values = new int[15];
+            foreach(var v in data)
+            {
+                int key = int.Parse(v.Key);
+                if (key < values.Length)
+                    values[key] = v.Value;
+            }
+            return values;
+        }
+
+        private static float[] ConvertToStatsFloat(Dictionary<string, float> data)
+        {
+            float[] values = new float[15];
+            foreach (var v in data)
+            {
+                int key = int.Parse(v.Key);
+                if (key < values.Length)
+                    values[key] = v.Value;
+            }
+            return values;
         }
     }
 }

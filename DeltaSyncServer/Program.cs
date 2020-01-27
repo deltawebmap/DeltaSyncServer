@@ -14,7 +14,6 @@ namespace DeltaSyncServer
     class Program
     {
         public static DeltaConnection conn;
-        public static DeltaPrimalDataCache primal_data;
 
         public static Random rand;
 
@@ -25,6 +24,7 @@ namespace DeltaSyncServer
         static void Main(string[] args)
         {
             MainAsync().GetAwaiter().GetResult();
+            //var m = ARKDinoDataReader.ARKDinoDataTool.ReadData(File.ReadAllBytes("E:\\test_struct_bin.bin"));
         }
 
         static async Task MainAsync()
@@ -32,9 +32,6 @@ namespace DeltaSyncServer
             //Connect to database
             conn = new DeltaConnection(@"C:\Users\Roman\Documents\delta_dev\backend\database_config.json", CLIENT_NAME, VERSION_MAJOR, VERSION_MINOR);
             await conn.Connect();
-
-            //Set up primal data
-            primal_data = new DeltaPrimalDataCache();
 
             //Set up random
             rand = new Random();
@@ -83,6 +80,21 @@ namespace DeltaSyncServer
             {
                 e.Response.StatusCode = 401;
                 await WriteStringToStream(e.Response.Body, "Not Authenticated");
+            }
+
+            return server;
+        }
+
+        public static async Task<DbSyncSavedState> ForceAuthSessionState(Microsoft.AspNetCore.Http.HttpContext e)
+        {
+            //Authenticate server
+            DbSyncSavedState server = await DbSyncSavedState.GetStateByTokenAsync(conn, e.Request.Query["state"]);
+
+            //Fail if this isn't correct
+            if(server == null)
+            {
+                e.Response.StatusCode = 401;
+                await WriteStringToStream(e.Response.Body, "State Not Authenticated");
             }
 
             return server;

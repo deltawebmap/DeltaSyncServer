@@ -55,23 +55,11 @@ namespace DeltaSyncServer.Services.v1
                     custom_name = null
                 };
 
-                //Set inventory
-                if(s.inventory != null)
-                {
-                    //Set flags
-                    structure.has_inventory = true;
-                    structure.max_item_count = s.inventory.max;
-
-                    //Set name, if any
-                    if (s.inventory.name.Length > 0)
-                        structure.custom_name = s.inventory.name;
-
-                    //Add items
-                    foreach (var i in s.inventory.items)
-                    {
-                        Tools.InventoryManager.QueueInventoryItem(itemActions, i, structure.structure_id.ToString(), DbInventoryParentType.Structure, server.id, structure.tribe_id, structure.revision_id, structure.revision_type);
-                    }
-                }
+                //Set inventory flags
+                structure.has_inventory = s.max_items > 0;
+                structure.custom_name = s.name;
+                structure.max_item_count = s.max_items;
+                structure.current_item_count = s.item_count;
 
                 //Create filter for updating this structure
                 var filterBuilder = Builders<DbStructure>.Filter;

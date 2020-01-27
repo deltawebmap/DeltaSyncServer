@@ -48,7 +48,7 @@ namespace DeltaSyncServer.Tools
             return item;
         }
 
-        private static void AddItemToQueue(List<WriteModel<DbItem>> itemActions, DbItem item)
+        public static void AddItemToQueue(List<WriteModel<DbItem>> itemActions, DbItem item)
         {
             //Create filter for updating this dino
             var filterBuilder = Builders<DbItem>.Filter;

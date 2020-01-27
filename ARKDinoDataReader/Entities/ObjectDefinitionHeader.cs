@@ -95,7 +95,15 @@ namespace ARKDinoDataReader.Entities
             BaseProperty prop = GetBasePropertyByName(name, index);
             if (prop == null)
                 return default(T);
-            return (T)Convert.ChangeType(prop, typeof(T));
+            try
+            {
+                return (T)Convert.ChangeType(prop, typeof(T));
+            } catch (Exception ex)
+            {
+                string err = $"ERROR READING: Tried to read {prop.GetType().FullName} as {typeof(T).FullName} with name {name}:{index}!";
+                Console.WriteLine(err);
+                throw new Exception(err);
+            }
         }
 
         public string GetStringProperty(string name, int index = 0, string defaultValue = null)
@@ -112,6 +120,17 @@ namespace ARKDinoDataReader.Entities
         public int GetIntProperty(string name, int index = 0, int? defaultValue = null)
         {
             IntProperty p = GetPropertyByName<IntProperty>(name, index);
+            if (p == null && defaultValue == null)
+                throw new Exception($"No values found for {name}:{index}, and no defaults were given!");
+            else if (p == null)
+                return defaultValue.Value;
+            else
+                return p.value;
+        }
+
+        public ushort GetUInt16Property(string name, int index = 0, ushort? defaultValue = null)
+        {
+            UInt16Property p = GetPropertyByName<UInt16Property>(name, index);
             if (p == null && defaultValue == null)
                 throw new Exception($"No values found for {name}:{index}, and no defaults were given!");
             else if (p == null)

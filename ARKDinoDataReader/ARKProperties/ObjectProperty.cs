@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using ARKDinoDataReader.Entities;
 using ARKDinoDataReader.Tools;
+using Newtonsoft.Json;
 
 namespace ARKDinoDataReader.ARKProperties
 {
@@ -12,6 +13,7 @@ namespace ARKDinoDataReader.ARKProperties
 
         //Only set if isLocalLink == true
         public int localLinkIndex;
+        [JsonIgnore]
         public ARKDinoDataObject localLinkObject;
 
         //Only set if isLocalLink == false

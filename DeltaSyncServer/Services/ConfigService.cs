@@ -13,6 +13,8 @@ namespace DeltaSyncServer.Services
 {
     public static class ConfigService
     {
+        public const int MIN_ALLOWED_VERSION = 5;
+        
         /// <summary>
         /// To: /config
         /// Used to provide config files and create new tokens/servers
@@ -24,8 +26,31 @@ namespace DeltaSyncServer.Services
             //Decode POST body
             RequestPayload request = Program.DecodeStreamAsJson<RequestPayload>(e.Request.Body);
 
+            //Check to see if this is a valid ARK server
+            if(!e.Request.Query.ContainsKey("client_version"))
+            {
+                e.Response.StatusCode = 400;
+                await Program.WriteStringToStream(e.Response.Body, "Required information was not sent, this is likely not a valid ARK server.\r\n\r\nIt's likely that you're looking into how things here work. More information: https://github.com/deltawebmap/Docs/blob/master/basics.md \r\n\r\n(C) DeltaWebMap 2020, RomanPort 2020");
+                return;
+            }
+
             //Get version
             int clientVersion = int.Parse(e.Request.Query["client_version"]);
+
+            //If the version is too old, reject
+            if(clientVersion < MIN_ALLOWED_VERSION)
+            {
+                //Create a response
+                ResponsePayload r = new ResponsePayload
+                {
+                    start_allowed = false,
+                    start_msg = "Can't Connect: This version of the mod, "+clientVersion+", is too old. Please upgrade to a newer version using the Steam Workshop. Need help? https://deltamap.net/support/."
+                };
+
+                //Write response
+                await Program.WriteStringToStream(e.Response.Body, Newtonsoft.Json.JsonConvert.SerializeObject(r));
+                return;
+            }
 
             //Attempt to authenticate. It's OK of this fails.
             DbServer server = await Program.conn.AuthenticateServerTokenAsync(request.token);
@@ -93,7 +118,9 @@ namespace DeltaSyncServer.Services
                 state = stateToken,
                 revision_ids = server.revision_ids,
                 ini_settings = iniSettings,
-                update_speed_multiplier = server.update_speed_multiplier
+                update_speed_multiplier = server.update_speed_multiplier,
+                start_allowed = true,
+                start_msg = "Connected! Welcome to the Delta Web Map beta!"
             };
 
             //Write response
@@ -151,6 +178,8 @@ namespace DeltaSyncServer.Services
             public List<ResponsePayload_ConfigRequest> ini_settings;
             public float update_speed_multiplier;
             public ulong[] revision_ids;
+            public bool start_allowed;
+            public string start_msg;
         }
 
         class ResponsePayload_ConfigRequest

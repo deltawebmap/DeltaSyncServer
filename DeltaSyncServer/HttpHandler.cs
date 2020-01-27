@@ -1,5 +1,6 @@
 ﻿using DeltaSyncServer.Services;
 using DeltaSyncServer.Services.v1;
+using DeltaSyncServer.Services.v1.Analytics;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,14 +27,18 @@ namespace DeltaSyncServer
                     await ProfilesRequest.OnHttpRequest(e);
                 else if (e.Request.Path == "/v1/players")
                     await PlayersRequest.OnHttpRequest(e);
-                else if (e.Request.Path == "/v1/cryo")
-                    await CryoRequest.OnHttpRequest(e);
+                else if (e.Request.Path == "/v1/items")
+                    await ItemsRequest.OnHttpRequest(e);
                 else if (e.Request.Path == "/v1/eggs")
                     await EggsRequest.OnHttpRequest(e);
                 else if (e.Request.Path == "/v1/settings")
                     await SettingsRequest.OnHttpRequest(e);
                 else if (e.Request.Path == "/v1/update_revision_id")
                     await UpdateRevisionIdRequest.OnHttpRequest(e);
+                else if (e.Request.Path == "/v1/live")
+                    await LiveRequest.OnHttpRequest(e);
+                else if (e.Request.Path == "/v1/analytics/time")
+                    await TimeAnalyticsRequest.OnHttpRequest(e);
                 else
                 {
                     e.Response.StatusCode = 404;
@@ -41,7 +46,9 @@ namespace DeltaSyncServer
                 }
             } catch (Exception ex)
             {
-                Console.WriteLine(ex.Message + ex.StackTrace);
+                e.Response.StatusCode = 500;
+                await Program.WriteStringToStream(e.Response.Body, "ERROR\r\n\r\n"+ex.Message+"\r\n\r\n"+ex.StackTrace+ "\r\n\r\n(C) DeltaWebMap 2020, RomanPort 2020 - https://github.com/deltawebmap/");
+                return;
             }
         }
     }

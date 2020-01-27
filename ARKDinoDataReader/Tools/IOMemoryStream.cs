@@ -130,7 +130,7 @@ namespace ARKDinoDataReader.Tools
             return ReadByte() != 0x00;
         }
 
-        public string ReadUEString(int maxLen = int.MaxValue)
+        public string ReadUEString(int maxLen = 1000)
         {
             //Read length
             int length = this.ReadInt();

@@ -17,5 +17,15 @@ namespace DeltaSyncServer.Entities
         public float egg_sync_policy = 45;
         public float refresh_player_actor_queue_policy = 10;
         public float tick_player_actor_queue_policy = 1.5f;
+
+        public float live_refresh_max_items = 512;
+        public float live_refresh_tolerance_distance = 550;
+        public float live_refresh_tolerance_rotation = 30;
+        public float live_refresh_tolerance_stat_health = 10;
+        public float live_refresh_tolerance_stat_stamina = 20;
+        public float live_refresh_tolerance_stat_weight = 10;
+        public float live_refresh_tolerance_stat_food = 5;
+        public float live_refresh_interval = 1;
+        public float live_update_objects_interval = 60;
     }
 }

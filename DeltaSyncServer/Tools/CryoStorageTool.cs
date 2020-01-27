@@ -11,6 +11,7 @@ using LibDeltaSystem.Db.System;
 using LibDeltaSystem.Entities.ArkEntries.Dinosaur;
 using LibDeltaSystem.RPC.Payloads;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,106 +19,30 @@ using System.Text;
 using System.Threading.Tasks;
 using static LibDeltaSystem.RPC.Payloads.RPCPayloadDinosaurUpdateEvent;
 
-namespace DeltaSyncServer.Services.v1
+namespace DeltaSyncServer.Tools
 {
-    public static class CryoRequest
+    public static class CryoStorageTool
     {
-        public static async Task OnHttpRequest(Microsoft.AspNetCore.Http.HttpContext e)
+        public static DbDino QueueDino(List<WriteModel<DbDino>> dinoActions, out DinosaurEntry entry, DbServer server, string inventoryId, ulong revisionId, byte revisionIndex, int inventoryType, ulong inventoryItemId, DeltaPrimalDataPackage pack, string request)
         {
-            //Authenticate
-            DbServer server = await Program.ForceAuthServer(e);
-            if (server == null)
-                return;
+            //Parse the dino data
+            DbDino dino = ParseDinoData(out entry, server, inventoryId, revisionId, revisionIndex, inventoryType, inventoryItemId, pack, request);
+            if (dino == null)
+                return null;
 
-            using (StreamReader sr = new StreamReader(e.Request.Body))
-                Console.WriteLine(await sr.ReadToEndAsync());
-            return;
-
-            //Decode
-            CryoRequestData payload = Program.DecodeStreamAsJson<CryoRequestData>(e.Request.Body);
-
-            //Get primal data
-            var primal = await Program.conn.GetPrimalDataPackage(server.mods);
-
-            //Get inventory ID
-            string inventoryId = payload.id1.ToString();
-            if (payload.mp)
-                inventoryId = Program.GetMultipartID(payload.id1, payload.id2).ToString();
-
-            //Create queues
-            List<WriteModel<DbDino>> dinoActions = new List<WriteModel<DbDino>>();
-            List<WriteModel<DbItem>> itemActions = new List<WriteModel<DbItem>>();
-            Dictionary<int, List<RPCPayloadDinosaurUpdateEvent_Dino>> rpcDinos = new Dictionary<int, List<RPCPayloadDinosaurUpdateEvent_Dino>>();
-
-            //Handle all
-            for (int i = 0; i<payload.d.Length; i++)
+            //Enqueue adding this dino
             {
-                try
-                {
-                    //Get parts
-                    DinoItem metadata = payload.md[i];
+                //Create filter for updating this dino
+                var filterBuilder = Builders<DbDino>.Filter;
+                var filter = filterBuilder.Eq("dino_id", dino.dino_id) & filterBuilder.Eq("server_id", server.id);
 
-                    //Parse the dino data
-                    DbDino dino = ParseDinoData(out DinosaurEntry entry, server, inventoryId, payload.rid, payload.rindex, payload.it, Program.GetMultipartID(metadata.id1, metadata.id2), primal, payload.d[i]);
-                    if (dino == null)
-                        return;
-
-                    //Enqueue adding this dino
-                    {
-                        //Create filter for updating this dino
-                        var filterBuilder = Builders<DbDino>.Filter;
-                        var filter = filterBuilder.Eq("dino_id", dino.dino_id) & filterBuilder.Eq("server_id", server.id);
-
-                        //Now, add (or insert) this into the database
-                        var a = new ReplaceOneModel<DbDino>(filter, dino);
-                        a.IsUpsert = true;
-                        dinoActions.Add(a);
-                    }
-
-                    //Add item
-                    InventoryManager.QueueInventoryItem(itemActions, metadata, inventoryId, (DbInventoryParentType)payload.it, server.id, dino.tribe_id, payload.rid, payload.rindex, DbItem.CUSTOM_DATA_KEY__CRYO_DINO_ID, dino.dino_id.ToString());
-
-                    //Add this dino to the RPC message queue
-                    var rpcDino = new RPCPayloadDinosaurUpdateEvent_Dino
-                    {
-                        classname = dino.classname,
-                        icon = entry.icon.image_thumb_url,
-                        id = dino.dino_id.ToString(),
-                        level = dino.level,
-                        name = dino.tamed_name,
-                        status = dino.status,
-                        x = dino.location.x,
-                        y = dino.location.y,
-                        z = dino.location.z,
-                        species = entry.screen_name,
-                        is_cryo = true
-                    };
-                    if (!rpcDinos.ContainsKey(dino.tribe_id))
-                        rpcDinos.Add(dino.tribe_id, new List<RPCPayloadDinosaurUpdateEvent_Dino>());
-                    rpcDinos[dino.tribe_id].Add(rpcDino);
-                } catch (Exception ex)
-                {
-                    Console.WriteLine($"Got error reading {payload.d[i]}: {ex.Message}{ex.StackTrace}");
-                }
+                //Now, add (or insert) this into the database
+                var a = new ReplaceOneModel<DbDino>(filter, dino);
+                a.IsUpsert = true;
+                dinoActions.Add(a);
             }
 
-            //Apply actions
-            if (dinoActions.Count > 0)
-            {
-                await Program.conn.content_dinos.BulkWriteAsync(dinoActions);
-                dinoActions.Clear();
-            }
-            await InventoryManager.UpdateInventoryItems(itemActions, Program.conn);
-
-            //Send RPC messages
-            foreach (var rpc in rpcDinos)
-            {
-                RPCPayloadDinosaurUpdateEvent rpcMessage = new RPCPayloadDinosaurUpdateEvent
-                {
-                    dinos = rpc.Value
-                };
-                Program.conn.GetRPC().SendRPCMessageToTribe(LibDeltaSystem.RPC.RPCOpcode.DinosaurUpdateEvent, rpcMessage, server, rpc.Key);
-            }
+            return dino;
         }
 
         private static DbDino ParseDinoData(out DinosaurEntry entry, DbServer server, string inventoryId, ulong revisionId, byte revisionIndex, int inventoryType, ulong inventoryItemId, DeltaPrimalDataPackage pack, string request)
@@ -129,6 +54,7 @@ namespace DeltaSyncServer.Services.v1
 
             //Now, decode and parse
             ARKDinoDataObject[] parts = ARKDinoDataTool.ReadData(data);
+            Console.WriteLine(JsonConvert.SerializeObject(parts));
 
             //Get dino part
             ARKDinoDataObject d = parts[0];
@@ -142,14 +68,14 @@ namespace DeltaSyncServer.Services.v1
             List<string> colors = new List<string>();
             for (int i = 0; true; i++)
             {
-                ByteProperty colorProp = d.GetPropertyByName<ByteProperty>("ColorSetIndexes", i);
+                ByteProperty colorProp = d.GetPropertyByName<ByteProperty>("ColorSetIndices", i);
                 if (colorProp == null)
                     break;
                 byte color = colorProp.byteValue;
                 if (color <= 0 || color > ArkStatics.ARK_COLOR_IDS.Length)
-                    colors[i] = "#FFFFFF";
+                    colors.Add("#FFFFFF");
                 else
-                    colors[i] = ArkStatics.ARK_COLOR_IDS[colorProp.byteValue - 1]; //Look this up in the color table to get the nice HTML value.
+                    colors.Add(ArkStatics.ARK_COLOR_IDS[colorProp.byteValue - 1]); //Look this up in the color table to get the nice HTML value.
             }
 
             //Get status component
@@ -176,8 +102,8 @@ namespace DeltaSyncServer.Services.v1
                 server_id = server.id,
                 location = new DbLocation(0, 0, 0),
                 is_female = d.GetBoolProperty("bIsFemale", 0, false),
-                level = d.GetIntProperty("BaseCharacterLevel", 0, 0) + d.GetIntProperty("ExtraCharacterLevel", 0, 0),
-                base_level = d.GetIntProperty("BaseCharacterLevel", 0, 0),
+                level = status.GetIntProperty("BaseCharacterLevel", 0, 0) + status.GetUInt16Property("ExtraCharacterLevel", 0, 0),
+                base_level = status.GetIntProperty("BaseCharacterLevel", 0, 0),
                 is_tamed = true,
                 taming_effectiveness = 1,
                 max_stats = ConvertStatsFloat(status, "MaxStatusValues"),
@@ -186,7 +112,8 @@ namespace DeltaSyncServer.Services.v1
                 base_levelups_applied = ConvertStatsInt(status, "NumberOfLevelUpPointsApplied"),
                 status = ConvertStatus(d),
                 cryo_inventory_type = inventoryType,
-                cryo_inventory_itemid = inventoryItemId
+                cryo_inventory_itemid = inventoryItemId,
+                experience_points = status.GetFloatProperty("ExperiencePoints", 0, 0)
             };
 
             return dino;

@@ -16,9 +16,16 @@ namespace ARKDinoDataReader.ARKProperties
         public static BaseProperty ReadProperty(IOMemoryStream ms)
         {
             //Read name
-            string name = ms.ReadUEString();
-            if (name == "None")
-                return null;
+            string name;
+            try
+            {
+                name = ms.ReadUEString();
+                if (name == "None")
+                    return null;
+            } catch (Exception ex)
+            {
+                throw ex;
+            }
 
             //Read type
             string type = ms.ReadUEString();
@@ -37,6 +44,11 @@ namespace ARKDinoDataReader.ARKProperties
                 case "UInt32Property": p = new UInt32Property(); break;
                 case "ByteProperty": p = new ByteProperty(); break;
                 case "DoubleProperty": p = new DoubleProperty(); break;
+                case "UInt64Property": p = new UInt64Property(); break;
+                case "UInt16Property": p = new UInt16Property(); break;
+                case "ArrayProperty": p = new ArrayProperty(); break;
+                case "Int8Property": p = new Int8Property(); break;
+                case "StructProperty": p = new StructProperty(); break;
                 default: throw new Exception("Unexpected type " + type + "!");
             }
 
