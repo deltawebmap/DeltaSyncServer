@@ -103,19 +103,16 @@ namespace DeltaSyncServer.Services.v1
                     dinoActions.Add(a);
                 }
 
+                //Get prefs
+                var prefs = await dino.GetPrefs(Program.conn);
+
                 //Add this dino to the RPC message queue
                 var rpcDino = new RPCPayloadDinosaurUpdateEvent_Dino
                 {
-                    classname = dino.classname,
-                    icon = entry.icon.image_thumb_url,
-                    id = dino.dino_id.ToString(),
-                    level = dino.level,
-                    name = dino.tamed_name,
-                    status = dino.status,
-                    x = dino.location.x,
-                    y = dino.location.y,
-                    z = dino.location.z,
-                    species = entry.screen_name
+                    dino_id = dino.dino_id.ToString(),
+                    dino = dino,
+                    species = entry,
+                    prefs = prefs
                 };
                 if (!rpcDinos.ContainsKey(dino.tribe_id))
                     rpcDinos.Add(dino.tribe_id, new List<RPCPayloadDinosaurUpdateEvent_Dino>());

@@ -2,7 +2,6 @@
 using ARKDinoDataReader.ARKProperties;
 using ARKDinoDataReader.Entities;
 using DeltaSyncServer.Entities;
-using DeltaSyncServer.Entities.CryoPayload;
 using DeltaSyncServer.Entities.DinoPayload;
 using DeltaSyncServer.Tools;
 using LibDeltaSystem;
