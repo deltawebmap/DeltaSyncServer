@@ -58,7 +58,7 @@ namespace DeltaSyncServer.Services.v1
                     parent_id = parentId,
                     parent_type = (DbInventoryParentType)i.it,
                     saved_durability = i.durability,
-                    server_id = server.id,
+                    server_id = server._id,
                     stack_size = i.count,
                     tribe_id = i.tribe,
                     revision_id = request.revision_id,

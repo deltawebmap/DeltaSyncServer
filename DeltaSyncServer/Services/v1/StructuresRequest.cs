@@ -47,7 +47,7 @@ namespace DeltaSyncServer.Services.v1
                     location = s.location,
                     max_health = s.max_health,
                     max_item_count = 0,
-                    server_id = server.id,
+                    server_id = server._id,
                     structure_id = s.id,
                     tribe_id = s.tribe,
                     revision_id = payload.revision_id,

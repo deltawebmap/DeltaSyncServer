@@ -22,6 +22,9 @@ namespace DeltaSyncServer.Services.v1
         /// <returns></returns>
         public static async Task OnHttpRequest(Microsoft.AspNetCore.Http.HttpContext e)
         {
+            Console.WriteLine("(dropping old dinos request)");
+            return;
+            
             //Authenticate
             DbServer server = await Program.ForceAuthServer(e);
             if (server == null)
@@ -51,7 +54,7 @@ namespace DeltaSyncServer.Services.v1
                 string[] colors = new string[d.colors.Length];
                 for(int i = 0; i<d.colors.Length; i++)
                 {
-                    byte color = d.colors[i];
+                    int color = d.colors[i];
                     if (color <= 0 || color > ArkStatics.ARK_COLOR_IDS.Length)
                         colors[i] = "#FFFFFF";
                     else
@@ -69,7 +72,7 @@ namespace DeltaSyncServer.Services.v1
                     base_level = d.base_level,
                     base_levelups_applied = ConvertToStatsInt(d.points_wild),
                     classname = Program.TrimArkClassname(d.classname),
-                    colors = colors,
+                    color_indexes = new int[6],
                     current_stats = ConvertToStatsFloat(d.current_stats),
                     max_stats = ConvertToStatsFloat(d.max_stats),
                     dino_id = dinoId,
@@ -83,7 +86,7 @@ namespace DeltaSyncServer.Services.v1
                     next_imprint_time = d.next_cuddle,
                     revision_id = s.revision_id,
                     revision_type = s.revision_index,
-                    server_id = server.id,
+                    server_id = server._id,
                     status = d.status,
                     tamed_levelups_applied = ConvertToStatsInt(d.points_tamed),
                     tamed_name = d.name,
@@ -103,16 +106,12 @@ namespace DeltaSyncServer.Services.v1
                     dinoActions.Add(a);
                 }
 
-                //Get prefs
-                var prefs = await dino.GetPrefs(Program.conn);
-
                 //Add this dino to the RPC message queue
                 var rpcDino = new RPCPayloadDinosaurUpdateEvent_Dino
                 {
                     dino_id = dino.dino_id.ToString(),
                     dino = dino,
                     species = entry,
-                    prefs = prefs
                 };
                 if (!rpcDinos.ContainsKey(dino.tribe_id))
                     rpcDinos.Add(dino.tribe_id, new List<RPCPayloadDinosaurUpdateEvent_Dino>());

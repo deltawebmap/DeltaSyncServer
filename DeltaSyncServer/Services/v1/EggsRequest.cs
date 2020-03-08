@@ -43,7 +43,7 @@ namespace DeltaSyncServer.Services.v1
                         placed_time = DateTime.UtcNow,
                         tribe_id = d.tribe_id,
                         item_id = id,
-                        server_id = server.id
+                        server_id = server._id
                     };
                 }
 

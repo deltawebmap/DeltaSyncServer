@@ -26,7 +26,7 @@ namespace DeltaSyncServer.Services.v1
             //Read data
             DbServerGameSettings s = Program.DecodeStreamAsJson<DbServerGameSettings>(e.Request.Body);
             server.game_settings = s;
-            await server.UpdateAsync();
+            await server.UpdateAsync(Program.conn);
 
             //Write finished
             e.Response.StatusCode = 200;

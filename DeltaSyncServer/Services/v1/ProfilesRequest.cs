@@ -47,7 +47,7 @@ namespace DeltaSyncServer.Services.v1
                     ig_name = p.ark_name,
                     last_login = p.last_login,
                     name = steam.name,
-                    server_id = server.id,
+                    server_id = server._id,
                     steam_id = p.steam_id,
                     tribe_id = p.tribe_id,
                     icon = steam.icon_url
@@ -77,7 +77,7 @@ namespace DeltaSyncServer.Services.v1
                 //Convert
                 DbTribe tribe = new DbTribe
                 {
-                    server_id = server.id,
+                    server_id = server._id,
                     tribe_id = t.tribe_id,
                     tribe_name = t.name,
                     tribe_owner = 0

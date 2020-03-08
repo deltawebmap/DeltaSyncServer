@@ -100,7 +100,7 @@ namespace DeltaSyncServer.Services.v1
                 //We'll create a new object with this basic data
                 DbPlayerCharacter c = new DbPlayerCharacter
                 {
-                    server_id = server.id,
+                    server_id = server._id,
                     tribe_id = update.tribeId,
                     ark_id = id,
                     pos = new DbVector3

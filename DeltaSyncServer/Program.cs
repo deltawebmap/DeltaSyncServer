@@ -1,5 +1,7 @@
-﻿using LibDeltaSystem;
+﻿using DeltaSyncServer.Services.Definitions;
+using LibDeltaSystem;
 using LibDeltaSystem.Db.System;
+using LibDeltaSystem.WebFramework;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Newtonsoft.Json;
@@ -37,7 +39,7 @@ namespace DeltaSyncServer
             rand = new Random();
 
             //Start HTTP server
-            var host = new WebHostBuilder()
+            /*var host = new WebHostBuilder()
                 .UseKestrel(options =>
                 {
                     IPAddress addr = IPAddress.Any;
@@ -46,7 +48,12 @@ namespace DeltaSyncServer
                 .UseStartup<Program>()
                 .Build();
 
-            await host.RunAsync();
+            await host.RunAsync();*/
+
+            //Start server
+            DeltaWebServer server = new DeltaWebServer(conn, 43287);
+            server.AddService(new DinosRequestDefinition());
+            await server.RunAsync();
         }
 
         public void Configure(IApplicationBuilder app)

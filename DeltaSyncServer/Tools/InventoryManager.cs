@@ -1,6 +1,7 @@
 ﻿using DeltaSyncServer.Entities.DinoPayload;
 using LibDeltaSystem;
 using LibDeltaSystem.Db.Content;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace DeltaSyncServer.Tools
 {
     public static class InventoryManager
     {
-        public static void QueueInventoryItem(List<WriteModel<DbItem>> itemActions, DinoItem i, string parent_id, DbInventoryParentType parent_type, string server_id, int tribe_id, ulong revision_id, byte revision_index, string custom_data_name = null, string custom_data_value = null)
+        public static void QueueInventoryItem(List<WriteModel<DbItem>> itemActions, DinoItem i, string parent_id, DbInventoryParentType parent_type, ObjectId server_id, int tribe_id, ulong revision_id, byte revision_index, string custom_data_name = null, string custom_data_value = null)
         {
             //Convert item
             DbItem item = ConvertToItem(i, parent_id, parent_type, server_id, tribe_id, revision_id, revision_index);
@@ -24,7 +25,7 @@ namespace DeltaSyncServer.Tools
             AddItemToQueue(itemActions, item);
         }
 
-        private static DbItem ConvertToItem(DinoItem i, string parent_id, DbInventoryParentType parent_type, string server_id, int tribe_id, ulong revision_id, byte revision_index)
+        private static DbItem ConvertToItem(DinoItem i, string parent_id, DbInventoryParentType parent_type, ObjectId server_id, int tribe_id, ulong revision_id, byte revision_index)
         {
             //Convert item
             DbItem item = new DbItem

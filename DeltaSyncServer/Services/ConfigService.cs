@@ -66,10 +66,9 @@ namespace DeltaSyncServer.Services
                 {
                     display_name = request.name,
                     _id = MongoDB.Bson.ObjectId.GenerateNewId(),
-                    image_url = DbServer.StaticGetPlaceholderIcon(request.name),
+                    image_url = DbServer.StaticGetPlaceholderIcon(Program.conn, request.name),
                     token = token,
                     has_custom_image = false,
-                    conn = Program.conn,
                     latest_server_map = request.map,
                     mods = new string[0],
                     lock_flags = 1
@@ -86,7 +85,7 @@ namespace DeltaSyncServer.Services
                 if(owner != null)
                 {
                     server.owner_uid = owner.id;
-                    await server.UpdateAsync();
+                    await server.UpdateAsync(Program.conn);
                 }
             }
 

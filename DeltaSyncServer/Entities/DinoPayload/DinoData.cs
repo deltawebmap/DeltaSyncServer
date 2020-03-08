@@ -11,7 +11,7 @@ namespace DeltaSyncServer.Entities.DinoPayload
         public int id_1; //actually a uint
         public int id_2; //actually a uint
         public bool is_female;
-        public byte[] colors;
+        public int[] colors;
         public string name;
         public string tamer;
         public string classname;
