@@ -16,7 +16,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using static LibDeltaSystem.RPC.Payloads.RPCPayloadDinosaurUpdateEvent;
 
 namespace DeltaSyncServer.Tools
 {

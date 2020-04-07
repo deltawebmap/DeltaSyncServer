@@ -1,4 +1,5 @@
 ﻿using DeltaSyncServer.Services.Definitions;
+using DeltaSyncServer.Services.Definitions.Tests;
 using LibDeltaSystem;
 using LibDeltaSystem.Db.System;
 using LibDeltaSystem.WebFramework;
@@ -38,21 +39,12 @@ namespace DeltaSyncServer
             //Set up random
             rand = new Random();
 
-            //Start HTTP server
-            /*var host = new WebHostBuilder()
-                .UseKestrel(options =>
-                {
-                    IPAddress addr = IPAddress.Any;
-                    options.Listen(addr, 43287);
-                })
-                .UseStartup<Program>()
-                .Build();
-
-            await host.RunAsync();*/
-
             //Start server
             DeltaWebServer server = new DeltaWebServer(conn, 43287);
+            server.AddService(new ConfigRequestDefinition());
             server.AddService(new DinosRequestDefinition());
+            server.AddService(new LiveRequestDefinition());
+            server.AddService(new InventoriesRequestDefinition());
             await server.RunAsync();
         }
 

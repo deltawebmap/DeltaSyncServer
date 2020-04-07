@@ -147,5 +147,20 @@ namespace DeltaSyncServer.Services.v2
             }
             return values;
         }
+
+        public override LibDeltaSystem.RPC.Payloads.Entities.RPCSyncType GetRPCContentUpdateType()
+        {
+            return LibDeltaSystem.RPC.Payloads.Entities.RPCSyncType.Dino;
+        }
+
+        public override int GetTribeIdFromItem(DbDino item)
+        {
+            return item.tribe_id;
+        }
+
+        public override object GetRPCVersionOfItem(DbDino item)
+        {
+            return LibDeltaSystem.Entities.CommonNet.NetDino.ConvertDbDino(item);
+        }
     }
 }

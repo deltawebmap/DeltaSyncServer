@@ -8,26 +8,32 @@ using System.Threading.Tasks;
 using System.Reflection;
 using LibDeltaSystem.Db.System.Entities;
 using System.Linq;
+using LibDeltaSystem.WebFramework;
+using LibDeltaSystem;
+using Microsoft.AspNetCore.Http;
 
-namespace DeltaSyncServer.Services
+namespace DeltaSyncServer.Services.v2
 {
-    public static class ConfigService
+    public class ConfigRequestV2 : DeltaWebService
     {
         public const int MIN_ALLOWED_VERSION = 5;
-        
-        /// <summary>
-        /// To: /config
-        /// Used to provide config files and create new tokens/servers
-        /// </summary>
-        /// <param name="e"></param>
-        /// <returns></returns>
-        public static async Task OnHttpRequest(Microsoft.AspNetCore.Http.HttpContext e)
+
+        public ConfigRequestV2(DeltaConnection conn, HttpContext e) : base(conn, e)
+        {
+        }
+
+        public override async Task<bool> OnPreRequest()
+        {
+            return true;
+        }
+
+        public override async Task OnRequest()
         {
             //Decode POST body
             RequestPayload request = Program.DecodeStreamAsJson<RequestPayload>(e.Request.Body);
 
             //Check to see if this is a valid ARK server
-            if(!e.Request.Query.ContainsKey("client_version"))
+            if (!e.Request.Query.ContainsKey("client_version"))
             {
                 e.Response.StatusCode = 400;
                 await Program.WriteStringToStream(e.Response.Body, "Required information was not sent, this is likely not a valid ARK server.\r\n\r\nIt's likely that you're looking into how things here work. More information: https://github.com/deltawebmap/Docs/blob/master/basics.md \r\n\r\n(C) DeltaWebMap 2020, RomanPort 2020");
@@ -38,13 +44,13 @@ namespace DeltaSyncServer.Services
             int clientVersion = int.Parse(e.Request.Query["client_version"]);
 
             //If the version is too old, reject
-            if(clientVersion < MIN_ALLOWED_VERSION)
+            if (clientVersion < MIN_ALLOWED_VERSION)
             {
                 //Create a response
                 ResponsePayload r = new ResponsePayload
                 {
                     start_allowed = false,
-                    start_msg = "Can't Connect: This version of the mod, "+clientVersion+", is too old. Please upgrade to a newer version using the Steam Workshop. Need help? https://deltamap.net/support/."
+                    start_msg = "Can't Connect: This version of the mod, " + clientVersion + ", is too old. Please upgrade to a newer version using the Steam Workshop. Need help? https://deltamap.net/support/."
                 };
 
                 //Write response
@@ -54,7 +60,7 @@ namespace DeltaSyncServer.Services
 
             //Attempt to authenticate. It's OK of this fails.
             DbServer server = await Program.conn.AuthenticateServerTokenAsync(request.token);
-            if(server == null)
+            if (server == null)
             {
                 //Generate a token to use
                 string token = SecureStringTool.GenerateSecureString(82);
@@ -79,13 +85,14 @@ namespace DeltaSyncServer.Services
             }
 
             //Set the user ID if needed
-            if(server.owner_uid == null)
+            if (server.owner_uid == null)
             {
                 DbUser owner = await Program.conn.GetUserByServerSetupToken(request.user_token);
-                if(owner != null)
+                if (owner != null)
                 {
                     server.owner_uid = owner.id;
-                    await server.UpdateAsync(Program.conn);
+                    //TODO: FIX
+                    //await server.UpdateAsync(Program.conn);
                 }
             }
 
@@ -130,7 +137,7 @@ namespace DeltaSyncServer.Services
         {
             List<ResponsePayload_ConfigRequest> iniSettings = new List<ResponsePayload_ConfigRequest>();
             Type type = typeof(DbServerGameSettings);
-            foreach(var prop in type.GetProperties())
+            foreach (var prop in type.GetProperties())
             {
                 //Get the attribute
                 ServerSettingsMetadata metadata = prop.GetCustomAttribute<ServerSettingsMetadata>();
@@ -187,6 +194,10 @@ namespace DeltaSyncServer.Services
             public string name;
             public string type;
         }
+
+        public override async Task<bool> SetArgs(Dictionary<string, string> args)
+        {
+            return true;
+        }
     }
 }
-

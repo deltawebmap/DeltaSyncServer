@@ -10,21 +10,17 @@ using System.Threading.Tasks;
 
 namespace DeltaSyncServer.Services.Templates
 {
-    /// <summary>
-    /// Service for v2 sync
-    /// </summary>
-    /// <typeparam name="I">The input data type, wrapped in a RevisionMappedDataPutRequest<I></typeparam>
-    /// <typeparam name="T">The actual, db, data source</typeparam>
-    public abstract class InjestServerV2SyncService<I, T> : InjestServerAuthDeltaService
+    public abstract class InjestServerV2PutService<R, I, T> : InjestServerAuthDeltaService
     {
-        public InjestServerV2SyncService(DeltaConnection conn, HttpContext e) : base(conn, e)
+        public InjestServerV2PutService(DeltaConnection conn, HttpContext e) : base(conn, e)
         {
         }
 
         public override async Task OnRequest()
         {
             //Decode content
-            RevisionMappedDataPutRequest<I> request = await DecodePOSTBody<RevisionMappedDataPutRequest<I>>();
+            R request = await DecodePOSTBody<R>();
+            I[] data = GetRequestData(request);
 
             //Get primal data
             var primal = await Program.conn.GetPrimalDataPackage(server.mods);
@@ -33,11 +29,11 @@ namespace DeltaSyncServer.Services.Templates
             var collec = GetMongoCollection();
 
             //We'll now attempt to just update these values
-            Task<T>[] updates = new Task<T>[request.data.Length];
-            for (int i = 0; i<request.data.Length; i+=1)
+            Task<T>[] updates = new Task<T>[data.Length];
+            for (int i = 0; i < data.Length; i += 1)
             {
-                var r = request.data[i];
-                updates[i] = collec.FindOneAndUpdateAsync(CreateFilterDefinition(r), CreateUpdateDefinition(r, request.revision_id, request.revision_index), new FindOneAndUpdateOptions<T, T>
+                var r = data[i];
+                updates[i] = collec.FindOneAndUpdateAsync(CreateFilterDefinition(r), CreateUpdateDefinition(r, request), new FindOneAndUpdateOptions<T, T>
                 {
                     IsUpsert = false,
                     ReturnDocument = ReturnDocument.After
@@ -49,10 +45,10 @@ namespace DeltaSyncServer.Services.Templates
 
             //Identify items that need to be created (they haven't been in the db)
             List<T> writes = new List<T>();
-            for (int i = 0; i < request.data.Length; i += 1)
+            for (int i = 0; i < data.Length; i += 1)
             {
                 //Determine if we must create data
-                var r = request.data[i];
+                var r = data[i];
                 var result = updates[i].Result;
                 bool exists = result != null;
                 if (exists)
@@ -65,7 +61,7 @@ namespace DeltaSyncServer.Services.Templates
                 }
 
                 //Create
-                T input = CreateNewEntry(r, request.revision_id, request.revision_index);
+                T input = CreateNewEntry(r, request);
 
                 //Apply
                 writes.Add(input);
@@ -85,6 +81,13 @@ namespace DeltaSyncServer.Services.Templates
         }
 
         /// <summary>
+        /// Gets the payload data
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        public abstract I[] GetRequestData(R request);
+
+        /// <summary>
         /// Fires an RPC event for an item
         /// </summary>
         /// <param name="data"></param>
@@ -99,7 +102,7 @@ namespace DeltaSyncServer.Services.Templates
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public abstract UpdateDefinition<T> CreateUpdateDefinition(I data, ulong revision_id, byte revision_index);
+        public abstract UpdateDefinition<T> CreateUpdateDefinition(I data, R context);
 
         /// <summary>
         /// Creates an filter definition to access this item uniquely
@@ -115,7 +118,7 @@ namespace DeltaSyncServer.Services.Templates
         /// <param name="revision_id"></param>
         /// <param name="revision_index"></param>
         /// <returns></returns>
-        public abstract T CreateNewEntry(I data, ulong revision_id, byte revision_index);
+        public abstract T CreateNewEntry(I data, R context);
 
         /// <summary>
         /// Gets the collection we will be doing work in

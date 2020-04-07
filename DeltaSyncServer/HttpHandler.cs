@@ -1,6 +1,4 @@
 ﻿using DeltaSyncServer.Services;
-using DeltaSyncServer.Services.v1;
-using DeltaSyncServer.Services.v1.Analytics;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,7 +13,7 @@ namespace DeltaSyncServer
         {
             Console.WriteLine(e.Request.Path);
 
-            try
+            /*try
             {
                 if (e.Request.Path == "/config")
                     await ConfigService.OnHttpRequest(e);
@@ -49,7 +47,7 @@ namespace DeltaSyncServer
                 e.Response.StatusCode = 500;
                 await Program.WriteStringToStream(e.Response.Body, "ERROR\r\n\r\n"+ex.Message+"\r\n\r\n"+ex.StackTrace+ "\r\n\r\n(C) DeltaWebMap 2020, RomanPort 2020 - https://github.com/deltawebmap/");
                 return;
-            }
+            }*/
         }
     }
 }
