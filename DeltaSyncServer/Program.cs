@@ -45,6 +45,7 @@ namespace DeltaSyncServer
             server.AddService(new DinosRequestDefinition());
             server.AddService(new LiveRequestDefinition());
             server.AddService(new InventoriesRequestDefinition());
+            server.AddService(new PlayerProfilesRequestDefinition());
             await server.RunAsync();
         }
 

@@ -11,6 +11,7 @@ using System.Linq;
 using LibDeltaSystem.WebFramework;
 using LibDeltaSystem;
 using Microsoft.AspNetCore.Http;
+using MongoDB.Bson;
 
 namespace DeltaSyncServer.Services.v2
 {
@@ -54,7 +55,7 @@ namespace DeltaSyncServer.Services.v2
                 };
 
                 //Write response
-                await Program.WriteStringToStream(e.Response.Body, Newtonsoft.Json.JsonConvert.SerializeObject(r));
+                await Program.WriteStringToStream(e.Response.Body, "DELTAWEBMAP.CONFIGRESPONSE"+Newtonsoft.Json.JsonConvert.SerializeObject(r));
                 return;
             }
 
@@ -67,6 +68,17 @@ namespace DeltaSyncServer.Services.v2
                 while (!await SecureStringTool.CheckStringUniquenessAsync<DbServer>(token, Program.conn.system_servers))
                     token = SecureStringTool.GenerateSecureString(82);
 
+                //If this is a debug server, modify name
+                if (request.debug)
+                    request.name = $"TEST-{DateTime.Now.ToShortDateString()}-{DateTime.Now.ToShortTimeString()} " + request.name;
+
+                //Set the owner to the ID of the test user if we're in debug mode
+                ObjectId? ownerId = null;
+                if(request.debug)
+                {
+                    ownerId = (await conn.GetUserBySteamIdAsync(DeltaConnection.SYSTEM_USER_TEST))._id;
+                }
+
                 //Create a server
                 server = new DbServer
                 {
@@ -77,11 +89,34 @@ namespace DeltaSyncServer.Services.v2
                     has_custom_image = false,
                     latest_server_map = request.map,
                     mods = new string[0],
-                    lock_flags = 1
+                    lock_flags = 0,
+                    owner_uid = ownerId
                 };
 
                 //Insert
-                Program.conn.system_servers.InsertOne(server);
+                await Program.conn.system_servers.InsertOneAsync(server);
+
+                //If this is a debug server, add a test user and tribe
+                if(request.debug)
+                {
+                    await Program.conn.content_tribes.InsertOneAsync(new LibDeltaSystem.Db.Content.DbTribe
+                    {
+                        server_id = server._id,
+                        tribe_id = int.MaxValue,
+                        tribe_name = "TEST TRIBE",
+                        tribe_owner = 0
+                    });
+                    await Program.conn.content_player_profiles.InsertOneAsync(new LibDeltaSystem.Db.Content.DbPlayerProfile
+                    {
+                        ark_id = 0,
+                        icon = "",
+                        ig_name = "DEBUG USER",
+                        last_login = 0,
+                        server_id = server._id,
+                        steam_id = DeltaConnection.SYSTEM_USER_TEST,
+                        tribe_id = int.MaxValue
+                    });
+                }
             }
 
             //Set the user ID if needed
@@ -90,7 +125,7 @@ namespace DeltaSyncServer.Services.v2
                 DbUser owner = await Program.conn.GetUserByServerSetupToken(request.user_token);
                 if (owner != null)
                 {
-                    server.owner_uid = owner.id;
+                    server.owner_uid = owner._id;
                     //TODO: FIX
                     //await server.UpdateAsync(Program.conn);
                 }
@@ -121,6 +156,7 @@ namespace DeltaSyncServer.Services.v2
             {
                 token = server.token,
                 delta_config = new ModRemoteConfig(),
+                server_id = server.id,
                 state = stateToken,
                 revision_ids = server.revision_ids,
                 ini_settings = iniSettings,
@@ -130,7 +166,7 @@ namespace DeltaSyncServer.Services.v2
             };
 
             //Write response
-            await Program.WriteStringToStream(e.Response.Body, Newtonsoft.Json.JsonConvert.SerializeObject(response));
+            await Program.WriteStringToStream(e.Response.Body, "DELTAWEBMAP.CONFIGRESPONSE" + Newtonsoft.Json.JsonConvert.SerializeObject(response));
         }
 
         private static List<ResponsePayload_ConfigRequest> CreateIniRequestData()
@@ -174,12 +210,14 @@ namespace DeltaSyncServer.Services.v2
             public string map;
             public string name;
             public string user_token;
+            public bool debug;
         }
 
         class ResponsePayload
         {
             public string token;
             public string state;
+            public string server_id;
             public ModRemoteConfig delta_config;
             public List<ResponsePayload_ConfigRequest> ini_settings;
             public float update_speed_multiplier;

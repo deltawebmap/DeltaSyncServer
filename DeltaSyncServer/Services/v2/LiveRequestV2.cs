@@ -99,13 +99,21 @@ namespace DeltaSyncServer.Services.v2
             var updateBuilder = Builders<DbPlayerProfile>.Update;
             List<UpdateDefinition<DbPlayerProfile>> updates = new List<UpdateDefinition<DbPlayerProfile>>();
             if (update.x != null)
-                updateBuilder.Set("x", update.x);
+                updates.Add(updateBuilder.Set("x", update.x));
             if (update.y != null)
-                updateBuilder.Set("y", update.y);
+                updates.Add(updateBuilder.Set("y", update.y));
             if (update.z != null)
-                updateBuilder.Set("z", update.z);
+                updates.Add(updateBuilder.Set("z", update.z));
             if (update.yaw != null)
-                updateBuilder.Set("yaw", update.yaw);
+                updates.Add(updateBuilder.Set("yaw", update.yaw));
+            if (update.health != null)
+                updates.Add(updateBuilder.Set("health", update.health));
+            if (update.stamina != null)
+                updates.Add(updateBuilder.Set("stamina", update.stamina));
+            if (update.weight != null)
+                updates.Add(updateBuilder.Set("weight", update.weight));
+            if (update.food != null)
+                updates.Add(updateBuilder.Set("food", update.food));
             var updateAction = updateBuilder.Combine(updates);
 
             //Apply to MongoDB

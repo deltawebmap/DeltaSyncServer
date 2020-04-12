@@ -104,6 +104,9 @@ namespace DeltaSyncServer.Services.v2
 
         public override InventoriesData[] GetRequestData(InventoriesRequestPayload request)
         {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Got {request.inv.Length} inventories");
+            Console.ForegroundColor = ConsoleColor.White;
             return request.inv;
         }
 
