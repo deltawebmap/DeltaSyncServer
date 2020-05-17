@@ -1,8 +1,10 @@
-﻿using LibDeltaSystem;
+﻿using DeltaSyncServer.Entities.ResponsePayload;
+using LibDeltaSystem;
 using LibDeltaSystem.Db.System;
 using LibDeltaSystem.WebFramework;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -51,8 +53,33 @@ namespace DeltaSyncServer.Services.Templates
         /// <returns></returns>
         public async Task WriteInjestEndOfRequest()
         {
-            //This will likely be replaced with ACTUAL data sent at some point
-            await WriteString($"OK~Delta Web Map Injest@{conn.system_version_major}.{conn.system_version_minor}", "text/plain", 200);
+            //Get next events
+            var events = await conn.GetQueuedSyncCommandsForServerById(server._id, true, 10);
+
+            //If there are events, send them
+            if(events.Count > 0)
+            {
+                //Create event payloads
+                StandardResponseData p = new StandardResponseData
+                {
+                    events = new List<StandardResponseData_Event>()
+                };
+                foreach(var e in events)
+                {
+                    p.events.Add(new StandardResponseData_Event
+                    {
+                        op = e.opcode,
+                        payload = e.DecodePayloadAsJObject()
+                    });
+                }
+
+                //Write
+                await WriteString("DELTAWEBMAP.EVENTRESPONSE" + JsonConvert.SerializeObject(p), "text/plain", 200);
+            } else
+            {
+                //Write "OK"
+                await WriteString("DELTAWEBMAP.NOEVENTS", "text/plain", 200);
+            }
         }
 
         public async Task<List<D>> CreateOrUpdateItems<T, D>(T[] items, IMongoCollection<D> collection, CreateOrUpdateItems_GetFilter<T, D> getFilter, CreateOrUpdateItems_GetUpdate<T, D> getUpdate, CreateOrUpdateItems_GetNew<T, D> getNew)

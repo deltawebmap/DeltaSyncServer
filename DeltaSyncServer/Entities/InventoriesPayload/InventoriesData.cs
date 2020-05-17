@@ -4,12 +4,9 @@ using System.Text;
 
 namespace DeltaSyncServer.Entities.InventoriesPayload
 {
+    //This is embedded in another request, usually
     public class InventoriesData
     {
-        public uint id1;
-        public uint id2;
-        public int tribe;
-        public int type;
         public InventoriesData_Item[] items;
     }
 

@@ -1,7 +1,9 @@
 ﻿using DeltaSyncServer.Entities.DinoPayload;
+using DeltaSyncServer.Entities.InventoriesPayload;
 using DeltaSyncServer.Services.Templates;
 using LibDeltaSystem;
 using LibDeltaSystem.Db.Content;
+using LibDeltaSystem.Entities.CommonNet;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 using System;
@@ -10,7 +12,7 @@ using System.Text;
 
 namespace DeltaSyncServer.Services.v2
 {
-    public class DinosRequestV2 : InjestServerV2SyncService<DinoData, DbDino>
+    public class DinosRequestV2 : InjestServerV2SyncInventoryService<DinoData, DbDino>
     {
         public DinosRequestV2(DeltaConnection conn, HttpContext e) : base(conn, e)
         {
@@ -28,45 +30,6 @@ namespace DeltaSyncServer.Services.v2
             return filter;
         }
 
-        public override DbDino CreateNewEntry(DinoData d, ulong revision_id, byte revision_index)
-        {
-            DbDino dino = new DbDino
-            {
-                baby_age = d.baby_age,
-                base_level = d.base_level,
-                base_levelups_applied = ConvertToStatsInt(d.points_wild),
-                classname = Program.TrimArkClassname(d.classname),
-                color_indexes = d.colors,
-                current_stats = ConvertToStatsFloat(d.current_stats),
-                max_stats = ConvertToStatsFloat(d.max_stats),
-                dino_id = GetDinoId(d),
-                experience = d.experience,
-                imprint_quality = d.imprint_quality,
-                is_baby = d.baby,
-                is_female = d.is_female,
-                is_tamed = true,
-                level = d.base_level + d.extra_level,
-                location = d.location,
-                next_imprint_time = d.next_cuddle,
-                revision_id = revision_id,
-                revision_type = revision_index,
-                server_id = server._id,
-                status = d.status,
-                tamed_levelups_applied = ConvertToStatsInt(d.points_tamed),
-                tamed_name = d.name,
-                tamer_name = d.tamer,
-                taming_effectiveness = 0,
-                tribe_id = d.tribe_id,
-                experience_points = d.experience,
-                is_alive = d.current_stats["0"] > 0,
-                is_cryo = false,
-                last_sync_time = DateTime.UtcNow,
-                last_update_time = DateTime.UtcNow,
-                prefs = new LibDeltaSystem.Db.System.Entities.SavedDinoTribePrefs()
-            };
-            return dino;
-        }
-
         public override UpdateDefinition<DbDino> CreateUpdateDefinition(DinoData d, ulong revision_id, byte revision_index)
         {
             var builder = Builders<DbDino>.Update;
@@ -77,6 +40,7 @@ namespace DeltaSyncServer.Services.v2
                 .Set("color_indexes", d.colors)
                 .Set("current_stats", ConvertToStatsFloat(d.current_stats))
                 .Set("max_stats", ConvertToStatsFloat(d.max_stats))
+                .SetOnInsert("dino_id", GetDinoId(d))
                 .Set("experience", d.experience)
                 .Set("imprint_quality", d.imprint_quality)
                 .Set("is_baby", d.baby)
@@ -87,6 +51,7 @@ namespace DeltaSyncServer.Services.v2
                 .Set("next_imprint_time", d.next_cuddle)
                 .Set("revision_id", revision_id)
                 .Set("revision_type", revision_index)
+                .SetOnInsert("server_id", server._id)
                 .Set("status", d.status)
                 .Set("tamed_levelups_applied", ConvertToStatsInt(d.points_tamed))
                 .Set("tamed_name", d.name)
@@ -97,6 +62,7 @@ namespace DeltaSyncServer.Services.v2
                 .Set("is_alive", d.current_stats["0"] > 0)
                 .Set("last_sync_time", DateTime.UtcNow)
                 .Set("last_update_time", DateTime.UtcNow)
+                .SetOnInsert("prefs", new LibDeltaSystem.Db.System.Entities.SavedDinoTribePrefs())
                 .Set("is_cryo", false);
         }
 
@@ -153,14 +119,55 @@ namespace DeltaSyncServer.Services.v2
             return LibDeltaSystem.RPC.Payloads.Entities.RPCSyncType.Dino;
         }
 
-        public override int GetTribeIdFromItem(DbDino item)
+        public override int GetTribeIdFromItem(DinoData item)
         {
             return item.tribe_id;
         }
 
-        public override object GetRPCVersionOfItem(DbDino item)
+        public override object GetRPCVersionOfItem(DinoData dino)
         {
-            return LibDeltaSystem.Entities.CommonNet.NetDino.ConvertDbDino(item);
+            return new NetDino
+            {
+                tribe_id = dino.tribe_id,
+                dino_id = GetDinoId(dino).ToString(),
+                is_female = dino.is_female,
+                colors = dino.colors,
+                colors_hex = new string[6],
+                tamed_name = dino.name,
+                tamer_name = dino.tamer,
+                classname = Program.TrimArkClassname(dino.classname),
+                current_stats = ConvertToStatsFloat(dino.current_stats),
+                max_stats = ConvertToStatsFloat(dino.max_stats),
+                base_levelups_applied = ConvertToStatsInt(dino.points_wild),
+                tamed_levelups_applied = ConvertToStatsInt(dino.points_tamed),
+                base_level = dino.base_level,
+                level = dino.base_level + dino.extra_level,
+                experience = dino.experience,
+                is_baby = dino.baby,
+                baby_age = dino.baby_age,
+                next_imprint_time = dino.next_cuddle,
+                imprint_quality = dino.imprint_quality,
+                location = dino.location,
+                status = dino.status,
+                taming_effectiveness = 0,
+                is_cryo = false,
+                experience_points = dino.experience
+            };
+        }
+
+        public override InventoriesData GetInventoryDataOfObject(DinoData obj)
+        {
+            return obj.inventory;
+        }
+
+        public override ulong GetArkIdOfObject(DinoData obj)
+        {
+            return Program.GetMultipartID((uint)obj.id_1, (uint)obj.id_2);
+        }
+
+        public override DbInventory.DbInventory_InventoryType GetStructureTypeOfObject(DinoData obj)
+        {
+            return DbInventory.DbInventory_InventoryType.Dino;
         }
     }
 }

@@ -17,7 +17,7 @@ namespace DeltaSyncServer.Services.v2
 {
     public class ConfigRequestV2 : DeltaWebService
     {
-        public const int MIN_ALLOWED_VERSION = 5;
+        public const int MIN_ALLOWED_VERSION = 11;
 
         public ConfigRequestV2(DeltaConnection conn, HttpContext e) : base(conn, e)
         {
@@ -32,6 +32,7 @@ namespace DeltaSyncServer.Services.v2
         {
             //Decode POST body
             RequestPayload request = Program.DecodeStreamAsJson<RequestPayload>(e.Request.Body);
+            request.debug = false;
 
             //Check to see if this is a valid ARK server
             if (!e.Request.Query.ContainsKey("client_version"))
@@ -90,7 +91,9 @@ namespace DeltaSyncServer.Services.v2
                     latest_server_map = request.map,
                     mods = new string[0],
                     lock_flags = 0,
-                    owner_uid = ownerId
+                    owner_uid = ownerId,
+                    secure_mode = true,
+                    last_secure_mode_toggled = DateTime.UtcNow
                 };
 
                 //Insert
@@ -111,7 +114,6 @@ namespace DeltaSyncServer.Services.v2
                         ark_id = 0,
                         icon = "",
                         ig_name = "DEBUG USER",
-                        last_login = 0,
                         server_id = server._id,
                         steam_id = DeltaConnection.SYSTEM_USER_TEST,
                         tribe_id = int.MaxValue
@@ -123,18 +125,16 @@ namespace DeltaSyncServer.Services.v2
             if (server.owner_uid == null)
             {
                 DbUser owner = await Program.conn.GetUserByServerSetupToken(request.user_token);
-                if (owner != null)
+                if (owner != null && owner?._id != server.owner_uid)
                 {
-                    server.owner_uid = owner._id;
-                    //TODO: FIX
-                    //await server.UpdateAsync(Program.conn);
+                    await server.ClaimServer(conn, owner);
                 }
             }
 
             //Generate a state token
-            string stateToken = SecureStringTool.GenerateSecureString(24);
+            string stateToken = SecureStringTool.GenerateSecureString(56);
             while (!await SecureStringTool.CheckStringUniquenessAsync<DbSyncSavedState>(stateToken, Program.conn.system_sync_states))
-                stateToken = SecureStringTool.GenerateSecureString(24);
+                stateToken = SecureStringTool.GenerateSecureString(56);
 
             //Create a state
             DbSyncSavedState state = new DbSyncSavedState
@@ -162,7 +162,9 @@ namespace DeltaSyncServer.Services.v2
                 ini_settings = iniSettings,
                 update_speed_multiplier = server.update_speed_multiplier,
                 start_allowed = true,
-                start_msg = "Connected! Welcome to the Delta Web Map beta!"
+                start_msg = "Connected! Welcome to the Delta Web Map beta!",
+                debug_timings = true,
+                debug_remote_log = true
             };
 
             //Write response
@@ -224,6 +226,8 @@ namespace DeltaSyncServer.Services.v2
             public ulong[] revision_ids;
             public bool start_allowed;
             public string start_msg;
+            public bool debug_timings;
+            public bool debug_remote_log;
         }
 
         class ResponsePayload_ConfigRequest

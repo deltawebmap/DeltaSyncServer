@@ -12,7 +12,7 @@ namespace DeltaSyncServer.Services.Definitions.Tests
     {
         public override string GetTemplateUrl()
         {
-            return "/v1/inventories";
+            return "/v1/remote_log";
         }
 
         public override DeltaWebService OpenRequest(DeltaConnection conn, HttpContext e)

@@ -17,7 +17,6 @@ namespace DeltaSyncServer.Services.v2.Tests
 
         public override async Task OnRequest()
         {
-            Console.WriteLine("TEST TO " + e.Request.Path);
             string r;
             using (StreamReader sr = new StreamReader(e.Request.Body))
                 r = await sr.ReadToEndAsync();

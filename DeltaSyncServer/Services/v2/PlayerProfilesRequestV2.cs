@@ -22,63 +22,83 @@ namespace DeltaSyncServer.Services.v2
             //Decode sent data
             ProfilesRequestData request = await DecodePOSTBody<ProfilesRequestData>();
 
-            //Add tribes
-            await CreateOrUpdateItems<ProfilesTribeData, DbTribe>(request.tribes, conn.content_tribes, (ProfilesTribeData tribe) =>
+            //Run updates on tribe
+            List<WriteModel<DbTribe>> tribeUpdates = new List<WriteModel<DbTribe>>();
+            foreach (var tribe in request.tribes)
             {
-                var builder = Builders<DbTribe>.Filter;
-                var filter = builder.Eq("tribe_id", tribe.tribe_id) & builder.Eq("server_id", server._id);
-                return filter;
-            }, (ProfilesTribeData tribe) =>
-            {
-                var builder = Builders<DbTribe>.Update;
-                return builder.Set("tribe_name", tribe.name);
-            }, (ProfilesTribeData tribe) =>
-            {
-                return new DbTribe
-                {
-                    server_id = server._id,
-                    tribe_id = tribe.tribe_id,
-                    tribe_name = tribe.name,
-                    tribe_owner = 0
-                };
-            });
+                //Get filter
+                var filterBuilder = Builders<DbTribe>.Filter;
+                var filter = filterBuilder.Eq("tribe_id", tribe.tribe_id) & filterBuilder.Eq("server_id", server._id);
 
-            //Add players
-            await CreateOrUpdateItems<ProfilesProfileData, DbPlayerProfile>(request.player_profiles, conn.content_player_profiles, (ProfilesProfileData tribe) =>
+                //Get update
+                var updateBuilder = Builders<DbTribe>.Update;
+                var update = updateBuilder.SetOnInsert("server_id", server._id)
+                    .Set("tribe_id", tribe.tribe_id)
+                    .Set("tribe_name", tribe.name)
+                    .Set("tribe_owner", 0)
+                    .Set("last_seen", DateTime.UtcNow);
+
+                //Run
+                var u = new UpdateOneModel<DbTribe>(filter, update);
+                u.IsUpsert = true;
+                tribeUpdates.Add(u);
+            }
+
+            //Run updates on players
+            List<WriteModel<DbPlayerProfile>> playerUpdates = new List<WriteModel<DbPlayerProfile>>();
+            foreach (var tribe in request.player_profiles)
             {
-                var builder = Builders<DbPlayerProfile>.Filter;
-                var filter = builder.Eq("steam_id", tribe.steam_id) & builder.Eq("server_id", server._id);
-                return filter;
-            }, (ProfilesProfileData tribe) =>
-            {
-                var builder = Builders<DbPlayerProfile>.Update;
-                return builder.Set("ark_id", tribe.ark_id)
-                .Set("ig_name", tribe.ark_name)
-                .Set("steam_id", tribe.steam_id)
-                .Set("tribe_id", tribe.tribe_id)
-                .Set("name", tribe.ark_name);
-            }, (ProfilesProfileData tribe) =>
-            {
-                return new DbPlayerProfile
+                string steamName;
+                string steamIcon;
+                try
                 {
-                    ark_id = ulong.Parse(tribe.ark_id),
-                    icon = null,
-                    ig_name = tribe.ark_name,
-                    last_login = 0,
-                    server_id = server._id,
-                    steam_id = tribe.steam_id,
-                    tribe_id = tribe.tribe_id,
-                    name = tribe.ark_name,
-                    x = null,
-                    y = null,
-                    z = null,
-                    yaw = null,
-                    health = null,
-                    stamina = null,
-                    food = null,
-                    weight = null
-                };
-            });
+                    //Get Steam info
+                    var steam = await conn.GetSteamProfileById(tribe.steam_id);
+
+                    steamName = steam.name;
+                    steamIcon = steam.icon_url;
+                } catch
+                {
+                    steamName = "STEAM_ERROR";
+                    steamIcon = null;
+                }
+
+                //Get filter
+                var filterBuilder = Builders<DbPlayerProfile>.Filter;
+                var filter = filterBuilder.Eq("steam_id", tribe.steam_id) & filterBuilder.Eq("server_id", server._id);
+
+                //Get update
+                var updateBuilder = Builders<DbPlayerProfile>.Update;
+                var update = updateBuilder.SetOnInsert("server_id", server._id)
+                    .Set("tribe_id", tribe.tribe_id)
+                    .Set("name", steamName)
+                    .Set("ig_name", tribe.ark_name)
+                    .Set("ark_id", tribe.ark_id)
+                    .Set("steam_id", tribe.steam_id)
+                    .Set("last_seen", DateTime.UtcNow)
+                    .Set("icon", steamIcon);
+
+                //Run
+                var u = new UpdateOneModel<DbPlayerProfile>(filter, update);
+                u.IsUpsert = true;
+                playerUpdates.Add(u);
+            }
+
+            //Apply these
+            var tribeResponse = await conn.content_tribes.BulkWriteAsync(tribeUpdates);
+            var playerResponse = await conn.content_player_profiles.BulkWriteAsync(playerUpdates);
+
+            //Notify new users
+            foreach(var p in playerResponse.Upserts)
+            {
+                //Fetch a user account
+                var deltaAccount = await conn.GetUserBySteamIdAsync(request.player_profiles[p.Index].steam_id);
+                if(deltaAccount != null)
+                {
+                    LibDeltaSystem.Tools.RPCMessageTool.SendUserServerJoined(conn, deltaAccount, server);
+                    LibDeltaSystem.Tools.RPCMessageTool.SystemUserGroupReset(conn, deltaAccount);
+                }
+            }
 
             //Respond
             await WriteInjestEndOfRequest();

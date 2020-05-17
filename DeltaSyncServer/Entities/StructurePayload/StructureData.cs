@@ -1,4 +1,5 @@
-﻿using LibDeltaSystem.Db.Content;
+﻿using DeltaSyncServer.Entities.InventoriesPayload;
+using LibDeltaSystem.Db.Content;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,5 +19,6 @@ namespace DeltaSyncServer.Entities.StructurePayload
         public string name;
         public int max_items;
         public int item_count;
+        public InventoriesData inv;
     }
 }

@@ -32,56 +32,38 @@ namespace DeltaSyncServer.Services.Templates
             //Get the collection
             var collec = GetMongoCollection();
 
-            //We'll now attempt to just update these values
-            Task<T>[] updates = new Task<T>[request.data.Length];
-            for (int i = 0; i<request.data.Length; i+=1)
+            //Run updates
+            List<WriteModel<T>> writes = new List<WriteModel<T>>();
+            foreach(var r in request.data)
             {
-                var r = request.data[i];
-                updates[i] = collec.FindOneAndUpdateAsync(CreateFilterDefinition(r), CreateUpdateDefinition(r, request.revision_id, request.revision_index), new FindOneAndUpdateOptions<T, T>
-                {
-                    IsUpsert = false,
-                    ReturnDocument = ReturnDocument.After
-                });
+                //Make command
+                var command = new UpdateOneModel<T>(CreateFilterDefinition(r), CreateUpdateDefinition(r, request.revision_id, request.revision_index));
+                command.IsUpsert = true;
+
+                //Add
+                writes.Add(command);
+
+                //Send RPC message
+                FireRPCEvent(r);
             }
 
-            //Wait for these to finish
-            await Task.WhenAll(updates);
+            //Run
+            await collec.BulkWriteAsync(writes);
 
-            //Identify items that need to be created (they haven't been in the db)
-            List<T> writes = new List<T>();
-            for (int i = 0; i < request.data.Length; i += 1)
-            {
-                //Determine if we must create data
-                var r = request.data[i];
-                var result = updates[i].Result;
-                bool exists = result != null;
-                if (exists)
-                {
-                    //Fire off RPC events
-                    FireRPCEvent(result);
-
-                    //Since we don't need to create, skip
-                    continue;
-                }
-
-                //Create
-                T input = CreateNewEntry(r, request.revision_id, request.revision_index);
-
-                //Apply
-                writes.Add(input);
-            }
-
-            //Apply writes (if any)
-            if (writes.Count > 0)
-                await collec.InsertManyAsync(writes);
-
-            //Send new objects over RPC
-            foreach (var w in writes)
-                FireRPCEvent(w);
+            //Post update
+            await OnPostDbUpdate(request.data);
 
             //Finish
-            Console.WriteLine(writes.Count);
             await WriteInjestEndOfRequest();
+        }
+
+        /// <summary>
+        /// Called after we push DB updates, right before the end. Can be used to add additional functonality
+        /// </summary>
+        /// <returns></returns>
+        public virtual async Task OnPostDbUpdate(I[] data)
+        {
+
         }
 
         /// <summary>
@@ -89,7 +71,7 @@ namespace DeltaSyncServer.Services.Templates
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public async Task FireRPCEvent(T data)
+        public async Task FireRPCEvent(I data)
         {
             await RPCMessageTool.SendDbContentUpdateMessage(conn, GetRPCContentUpdateType(), GetRPCVersionOfItem(data), server._id, GetTribeIdFromItem(data));
         }
@@ -109,15 +91,6 @@ namespace DeltaSyncServer.Services.Templates
         public abstract FilterDefinition<T> CreateFilterDefinition(I data);
 
         /// <summary>
-        /// Creates a whole new entry
-        /// </summary>
-        /// <param name="data"></param>
-        /// <param name="revision_id"></param>
-        /// <param name="revision_index"></param>
-        /// <returns></returns>
-        public abstract T CreateNewEntry(I data, ulong revision_id, byte revision_index);
-
-        /// <summary>
         /// Gets the collection we will be doing work in
         /// </summary>
         /// <returns></returns>
@@ -134,14 +107,14 @@ namespace DeltaSyncServer.Services.Templates
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public abstract int GetTribeIdFromItem(T item);
+        public abstract int GetTribeIdFromItem(I item);
 
         /// <summary>
         /// Gets the version of an item to send over RPC
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public abstract object GetRPCVersionOfItem(T item);
+        public abstract object GetRPCVersionOfItem(I item);
 
         public override async Task<bool> SetArgs(Dictionary<string, string> args)
         {

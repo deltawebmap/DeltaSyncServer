@@ -1,4 +1,5 @@
-﻿using LibDeltaSystem.Db.Content;
+﻿using DeltaSyncServer.Entities.InventoriesPayload;
+using LibDeltaSystem.Db.Content;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -28,5 +29,6 @@ namespace DeltaSyncServer.Entities.DinoPayload
         public float imprint_quality;
         public DbLocation location;
         public string status;
+        public InventoriesData inventory;
     }
 }
