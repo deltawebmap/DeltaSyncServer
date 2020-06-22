@@ -37,7 +37,7 @@ namespace DeltaSyncServer.Services.v2
                 .Set("max_item_count", data.max_items)
                 .Set("max_health", data.max_health)
                 .Set("current_health", data.health)
-                .SetOnInsert("structure_id", data.id)
+                .Set("structure_id", data.id)
                 .Set("custom_name", data.name);
         }
 

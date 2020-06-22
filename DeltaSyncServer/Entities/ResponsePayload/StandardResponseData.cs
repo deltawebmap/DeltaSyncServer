@@ -13,6 +13,7 @@ namespace DeltaSyncServer.Entities.ResponsePayload
     public class StandardResponseData_Event
     {
         public int op;
+        public string ack_token;
         public JObject payload;
     }
 }

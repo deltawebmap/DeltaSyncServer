@@ -69,7 +69,8 @@ namespace DeltaSyncServer.Services.Templates
                     p.events.Add(new StandardResponseData_Event
                     {
                         op = e.opcode,
-                        payload = e.DecodePayloadAsJObject()
+                        payload = e.DecodePayloadAsJObject(),
+                        ack_token = e.id+"@"+e.sender_id
                     });
                 }
 

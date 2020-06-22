@@ -32,7 +32,7 @@ namespace DeltaSyncServer.Services.v2
         {
             //Decode POST body
             RequestPayload request = Program.DecodeStreamAsJson<RequestPayload>(e.Request.Body);
-            request.debug = false;
+            request.debug = true;
 
             //Check to see if this is a valid ARK server
             if (!e.Request.Query.ContainsKey("client_version"))
@@ -73,13 +73,6 @@ namespace DeltaSyncServer.Services.v2
                 if (request.debug)
                     request.name = $"TEST-{DateTime.Now.ToShortDateString()}-{DateTime.Now.ToShortTimeString()} " + request.name;
 
-                //Set the owner to the ID of the test user if we're in debug mode
-                ObjectId? ownerId = null;
-                if(request.debug)
-                {
-                    ownerId = (await conn.GetUserBySteamIdAsync(DeltaConnection.SYSTEM_USER_TEST))._id;
-                }
-
                 //Create a server
                 server = new DbServer
                 {
@@ -90,35 +83,13 @@ namespace DeltaSyncServer.Services.v2
                     has_custom_image = false,
                     latest_server_map = request.map,
                     mods = new string[0],
-                    lock_flags = 0,
-                    owner_uid = ownerId,
-                    secure_mode = true,
+                    owner_uid = request.debug?ObjectId.Parse(DeltaConnection.SYSTEM_USER_TEST_DELTA) :(ObjectId?)null,
+                    secure_mode = !request.debug,
                     last_secure_mode_toggled = DateTime.UtcNow
                 };
 
                 //Insert
                 await Program.conn.system_servers.InsertOneAsync(server);
-
-                //If this is a debug server, add a test user and tribe
-                if(request.debug)
-                {
-                    await Program.conn.content_tribes.InsertOneAsync(new LibDeltaSystem.Db.Content.DbTribe
-                    {
-                        server_id = server._id,
-                        tribe_id = int.MaxValue,
-                        tribe_name = "TEST TRIBE",
-                        tribe_owner = 0
-                    });
-                    await Program.conn.content_player_profiles.InsertOneAsync(new LibDeltaSystem.Db.Content.DbPlayerProfile
-                    {
-                        ark_id = 0,
-                        icon = "",
-                        ig_name = "DEBUG USER",
-                        server_id = server._id,
-                        steam_id = DeltaConnection.SYSTEM_USER_TEST,
-                        tribe_id = int.MaxValue
-                    });
-                }
             }
 
             //Set the user ID if needed
@@ -158,13 +129,12 @@ namespace DeltaSyncServer.Services.v2
                 delta_config = new ModRemoteConfig(),
                 server_id = server.id,
                 state = stateToken,
-                revision_ids = server.revision_ids,
                 ini_settings = iniSettings,
                 update_speed_multiplier = server.update_speed_multiplier,
                 start_allowed = true,
                 start_msg = "Connected! Welcome to the Delta Web Map beta!",
-                debug_timings = true,
-                debug_remote_log = true
+                debug_timings = false,
+                debug_remote_log = false
             };
 
             //Write response
@@ -223,7 +193,6 @@ namespace DeltaSyncServer.Services.v2
             public ModRemoteConfig delta_config;
             public List<ResponsePayload_ConfigRequest> ini_settings;
             public float update_speed_multiplier;
-            public ulong[] revision_ids;
             public bool start_allowed;
             public string start_msg;
             public bool debug_timings;

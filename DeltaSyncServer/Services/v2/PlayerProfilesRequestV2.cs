@@ -96,7 +96,7 @@ namespace DeltaSyncServer.Services.v2
                 if(deltaAccount != null)
                 {
                     LibDeltaSystem.Tools.RPCMessageTool.SendUserServerJoined(conn, deltaAccount, server);
-                    LibDeltaSystem.Tools.RPCMessageTool.SystemUserGroupReset(conn, deltaAccount);
+                    LibDeltaSystem.Tools.RPCMessageTool.SystemNotifyUserGroupReset(conn, deltaAccount);
                 }
             }
 

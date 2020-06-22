@@ -1,6 +1,8 @@
 ﻿using DeltaSyncServer.Entities.InventoriesPayload;
 using LibDeltaSystem;
 using LibDeltaSystem.Db.Content;
+using LibDeltaSystem.Entities.CommonNet;
+using LibDeltaSystem.Tools;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 using System;
@@ -91,11 +93,20 @@ namespace DeltaSyncServer.Services.Templates
                 .SetOnInsert("tribe_id", tribe);
 
             //Update or insert
-            await conn.content_inventories.FindOneAndUpdateAsync(filter, update, new FindOneAndUpdateOptions<DbInventory, DbInventory>
+            var doc = await conn.content_inventories.FindOneAndUpdateAsync(filter, update, new FindOneAndUpdateOptions<DbInventory, DbInventory>
             {
                 IsUpsert = true,
                 ReturnDocument = ReturnDocument.After
             });
+
+            //Send RPC update
+            try
+            {
+                await RPCMessageTool.SendDbContentUpdateMessage(conn, LibDeltaSystem.RPC.Payloads.Entities.RPCSyncType.Inventory, NetInventory.ConvertInventory(doc), server._id, tribe);
+            } catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message + ex.StackTrace);
+            }
         }
 
         public abstract InventoriesData GetInventoryDataOfObject(I obj);
