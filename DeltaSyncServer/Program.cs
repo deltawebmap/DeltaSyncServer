@@ -19,7 +19,7 @@ namespace DeltaSyncServer
         public static DeltaConnection conn;
 
         public const byte VERSION_MAJOR = 0;
-        public const byte VERSION_MINOR = 2;
+        public const byte VERSION_MINOR = 3;
 
         static void Main(string[] args)
         {

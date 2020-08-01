@@ -52,7 +52,7 @@ namespace DeltaSyncServer.Services.v2
                 };
 
                 //Write response
-                await Program.WriteStringToStream(e.Response.Body, "DELTAWEBMAP.CONFIGRESPONSE"+Newtonsoft.Json.JsonConvert.SerializeObject(r));
+                await Program.WriteStringToStream(e.Response.Body, "D001"+Newtonsoft.Json.JsonConvert.SerializeObject(r));
                 return;
             }
 
