@@ -37,7 +37,7 @@ namespace DeltaSyncServer.Services.Templates
             }
 
             //Get server
-            server = await Program.conn.GetServerByIdAsync(MongoDB.Bson.ObjectId.Parse(session.server_id));
+            server = await Program.conn.GetServerByIdAsync(session.server_id);
             if (server == null)
             {
                 await WriteString("Server authentication failed!", "text/plain", 401);

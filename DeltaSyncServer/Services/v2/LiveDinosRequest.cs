@@ -53,10 +53,9 @@ namespace DeltaSyncServer.Services.v2
             }
 
             //Send all RPC events to their tribes
-            var rpcconn = conn.GetRPC();
             foreach (var t in tribes)
             {
-                rpcconn.SendRPCMsgToServerTribe(LibDeltaSystem.RPC.RPCOpcode.RPCPayload30002UserServerJoined, t.Value, server, t.Key);
+                conn.network.SendRPCEventToServerTribeId(LibDeltaSystem.RPC.RPCOpcode.RPCPayload30002UserServerJoined, t.Value, server, t.Key);
             }
 
             //Finish
