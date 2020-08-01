@@ -75,11 +75,11 @@ namespace DeltaSyncServer.Services.Templates
                 }
 
                 //Write
-                await WriteString("DELTAWEBMAP.EVENTRESPONSE" + JsonConvert.SerializeObject(p), "text/plain", 200);
+                await WriteString("D003" + JsonConvert.SerializeObject(p), "text/plain", 200);
             } else
             {
                 //Write "OK"
-                await WriteString("DELTAWEBMAP.NOEVENTS", "text/plain", 200);
+                await WriteString("D004", "text/plain", 200);
             }
         }
 

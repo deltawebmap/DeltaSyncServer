@@ -18,30 +18,18 @@ namespace DeltaSyncServer
     {
         public static DeltaConnection conn;
 
-        public static Random rand;
-
-        public const string CLIENT_NAME = "sync-mod-prod";
-        public const int VERSION_MAJOR = 0;
-        public const int VERSION_MINOR = 1;
+        public const byte VERSION_MAJOR = 0;
+        public const byte VERSION_MINOR = 1;
 
         static void Main(string[] args)
         {
-            MainAsync().GetAwaiter().GetResult();
-            //var m = ARKDinoDataReader.ARKDinoDataTool.ReadData(File.ReadAllBytes("E:\\test_struct_bin.bin"));
-        }
-
-        static async Task MainAsync()
-        {
             //Connect to database
-            conn = new DeltaConnection(@"C:\Users\Roman\Documents\delta_dev\backend\database_config.json", CLIENT_NAME, VERSION_MAJOR, VERSION_MINOR);
-            await conn.Connect();
-
-            //Set up random
-            rand = new Random();
+            conn = DeltaConnection.InitDeltaManagedApp(args, VERSION_MAJOR, VERSION_MINOR, new SyncCoreNet());
 
             //Start server
-            DeltaWebServer server = new DeltaWebServer(conn, 43287);
+            DeltaWebServer server = new DeltaWebServer(conn, conn.GetUserPort(0));
             server.AddService(new ConfigRequestDefinition());
+            server.AddService(new RegisterRequestDefinition());
             server.AddService(new DinosRequestDefinition());
             server.AddService(new LiveRequestDefinition());
             server.AddService(new PlayerProfilesRequestDefinition());
@@ -50,58 +38,15 @@ namespace DeltaSyncServer
             server.AddService(new RpcAckDefinition());
             server.AddService(new LiveDinosDefinition());
             server.AddService(new TestRequestDefinition());
-            await server.RunAsync();
-        }
 
-        public void Configure(IApplicationBuilder app)
-        {
-            app.Run(HttpHandler.OnHttpRequest);
-        }
-
-        public static T DecodeStreamAsJson<T>(Stream s)
-        {
-            var serializer = new JsonSerializer();
-            using (var sr = new StreamReader(s))
-            using (var reader = new JsonTextReader(sr))
-            {
-                return serializer.Deserialize<T>(reader);
-            }
+            //Run
+            server.RunAsync().GetAwaiter().GetResult();
         }
 
         public static async Task WriteStringToStream(Stream s, string r)
         {
             byte[] b = Encoding.UTF8.GetBytes(r);
             await s.WriteAsync(b);
-        }
-
-        public static async Task<DbServer> ForceAuthServer(Microsoft.AspNetCore.Http.HttpContext e)
-        {
-            //Authenticate server
-            DbServer server = await Program.conn.AuthenticateServerTokenAsync(e.Request.Query["token"]);
-
-            //Fail if this isn't correct
-            if(server == null)
-            {
-                e.Response.StatusCode = 401;
-                await WriteStringToStream(e.Response.Body, "Not Authenticated");
-            }
-
-            return server;
-        }
-
-        public static async Task<DbSyncSavedState> ForceAuthSessionState(Microsoft.AspNetCore.Http.HttpContext e)
-        {
-            //Authenticate server
-            DbSyncSavedState server = await DbSyncSavedState.GetStateByTokenAsync(conn, e.Request.Query["state"]);
-
-            //Fail if this isn't correct
-            if(server == null)
-            {
-                e.Response.StatusCode = 401;
-                await WriteStringToStream(e.Response.Body, "State Not Authenticated");
-            }
-
-            return server;
         }
 
         public static string TrimArkClassname(string name)

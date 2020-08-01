@@ -17,7 +17,7 @@ namespace DeltaSyncServer.Services.v2
 {
     public class ConfigRequestV2 : DeltaWebService
     {
-        public const int MIN_ALLOWED_VERSION = 11;
+        public const int MIN_ALLOWED_VERSION = 12;
 
         public ConfigRequestV2(DeltaConnection conn, HttpContext e) : base(conn, e)
         {
@@ -30,10 +30,6 @@ namespace DeltaSyncServer.Services.v2
 
         public override async Task OnRequest()
         {
-            //Decode POST body
-            RequestPayload request = Program.DecodeStreamAsJson<RequestPayload>(e.Request.Body);
-            request.debug = true;
-
             //Check to see if this is a valid ARK server
             if (!e.Request.Query.ContainsKey("client_version"))
             {
@@ -60,77 +56,14 @@ namespace DeltaSyncServer.Services.v2
                 return;
             }
 
-            //Attempt to authenticate. It's OK of this fails.
-            DbServer server = await Program.conn.AuthenticateServerTokenAsync(request.token);
-            if (server == null)
-            {
-                //Generate a token to use
-                string token = SecureStringTool.GenerateSecureString(82);
-                while (!await SecureStringTool.CheckStringUniquenessAsync<DbServer>(token, Program.conn.system_servers))
-                    token = SecureStringTool.GenerateSecureString(82);
-
-                //If this is a debug server, modify name
-                if (request.debug)
-                    request.name = $"TEST-{DateTime.Now.ToShortDateString()}-{DateTime.Now.ToShortTimeString()} " + request.name;
-
-                //Create a server
-                server = new DbServer
-                {
-                    display_name = request.name,
-                    _id = MongoDB.Bson.ObjectId.GenerateNewId(),
-                    image_url = DbServer.StaticGetPlaceholderIcon(Program.conn, request.name),
-                    token = token,
-                    has_custom_image = false,
-                    latest_server_map = request.map,
-                    mods = new string[0],
-                    owner_uid = request.debug?ObjectId.Parse(DeltaConnection.SYSTEM_USER_TEST_DELTA) :(ObjectId?)null,
-                    secure_mode = !request.debug,
-                    last_secure_mode_toggled = DateTime.UtcNow
-                };
-
-                //Insert
-                await Program.conn.system_servers.InsertOneAsync(server);
-            }
-
-            //Set the user ID if needed
-            if (server.owner_uid == null)
-            {
-                DbUser owner = await Program.conn.GetUserByServerSetupToken(request.user_token);
-                if (owner != null && owner?._id != server.owner_uid)
-                {
-                    await server.ClaimServer(conn, owner);
-                }
-            }
-
-            //Generate a state token
-            string stateToken = SecureStringTool.GenerateSecureString(56);
-            while (!await SecureStringTool.CheckStringUniquenessAsync<DbSyncSavedState>(stateToken, Program.conn.system_sync_states))
-                stateToken = SecureStringTool.GenerateSecureString(56);
-
-            //Create a state
-            DbSyncSavedState state = new DbSyncSavedState
-            {
-                mod_version = clientVersion,
-                server_id = server.id,
-                system_version = 0,
-                time = DateTime.UtcNow,
-                token = stateToken,
-                mod_enviornment = e.Request.Query["client_env"]
-            };
-            await Program.conn.system_sync_states.InsertOneAsync(state);
-
             //Create the requested INI settings
             List<ResponsePayload_ConfigRequest> iniSettings = CreateIniRequestData();
 
             //Create a response
             ResponsePayload response = new ResponsePayload
             {
-                token = server.token,
                 delta_config = new ModRemoteConfig(),
-                server_id = server.id,
-                state = stateToken,
                 ini_settings = iniSettings,
-                update_speed_multiplier = server.update_speed_multiplier,
                 start_allowed = true,
                 start_msg = "Connected! Welcome to the Delta Web Map beta!",
                 debug_timings = false,
@@ -138,7 +71,7 @@ namespace DeltaSyncServer.Services.v2
             };
 
             //Write response
-            await Program.WriteStringToStream(e.Response.Body, "DELTAWEBMAP.CONFIGRESPONSE" + Newtonsoft.Json.JsonConvert.SerializeObject(response));
+            await Program.WriteStringToStream(e.Response.Body, "D001" + Newtonsoft.Json.JsonConvert.SerializeObject(response));
         }
 
         private static List<ResponsePayload_ConfigRequest> CreateIniRequestData()
@@ -176,23 +109,10 @@ namespace DeltaSyncServer.Services.v2
             return iniSettings;
         }
 
-        class RequestPayload
-        {
-            public string token;
-            public string map;
-            public string name;
-            public string user_token;
-            public bool debug;
-        }
-
         class ResponsePayload
         {
-            public string token;
-            public string state;
-            public string server_id;
             public ModRemoteConfig delta_config;
             public List<ResponsePayload_ConfigRequest> ini_settings;
-            public float update_speed_multiplier;
             public bool start_allowed;
             public string start_msg;
             public bool debug_timings;
