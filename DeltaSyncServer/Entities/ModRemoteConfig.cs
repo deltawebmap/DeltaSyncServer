@@ -28,5 +28,7 @@ namespace DeltaSyncServer.Entities
             8,
             8
         };
+
+        public float modules_realtimeplayers_refreshtime = 5;
     }
 }

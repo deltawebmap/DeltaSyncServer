@@ -100,6 +100,8 @@ namespace DeltaSyncServer.Services.v2
                 }
             }
 
+            //Todo: Handle new admins
+
             //Respond
             await WriteInjestEndOfRequest();
         }
