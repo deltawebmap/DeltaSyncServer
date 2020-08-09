@@ -1,6 +1,7 @@
 ﻿using DeltaSyncServer.Entities.InventoriesPayload;
 using DeltaSyncServer.Entities.StructurePayload;
 using DeltaSyncServer.Services.Templates;
+using DeltaSyncServer.Tools.RpcSyncEngine;
 using LibDeltaSystem;
 using LibDeltaSystem.Db.Content;
 using LibDeltaSystem.Entities.CommonNet;
@@ -15,7 +16,7 @@ namespace DeltaSyncServer.Services.v2
 {
     public class StructuresRequestV2 : InjestServerV2SyncInventoryService<StructureData, DbStructure>
     {
-        public StructuresRequestV2(DeltaConnection conn, HttpContext e) : base(conn, e)
+        public StructuresRequestV2(DeltaConnection conn, HttpContext e) : base(conn, e, new RpcSyncEngineStructures())
         {
         }
 
@@ -54,23 +55,6 @@ namespace DeltaSyncServer.Services.v2
         public override IMongoCollection<DbStructure> GetMongoCollection()
         {
             return conn.content_structures;
-        }
-
-        public override RPCSyncType GetRPCContentUpdateType()
-        {
-            return RPCSyncType.Structure;
-        }
-
-        public override object GetRPCVersionOfItem(StructureData item)
-        {
-            return new NetStructure
-            {
-                classname = item.classname,
-                has_inventory = item.inv != null,
-                location = item.location,
-                structure_id = item.id,
-                tribe_id = item.tribe
-            };
         }
 
         public override DbInventory.DbInventory_InventoryType GetStructureTypeOfObject(StructureData obj)

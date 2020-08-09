@@ -93,14 +93,24 @@ namespace DeltaSyncServer.Services.v2
             {
                 //Fetch a user account
                 var deltaAccount = await conn.GetUserBySteamIdAsync(request.player_profiles[p.Index].steam_id);
+                conn.Log("PlayerProfilesRequestV2-NewPlayer", $"New player \"{deltaAccount.id}\" added", DeltaLogLevel.Debug);
                 if(deltaAccount != null)
                 {
-                    LibDeltaSystem.Tools.RPCMessageTool.SendUserServerJoined(conn, deltaAccount, server);
+                    await LibDeltaSystem.Tools.RPCMessageTool.SendUserServerJoined(conn, deltaAccount, server);
                     LibDeltaSystem.Tools.RPCMessageTool.SystemNotifyUserGroupReset(conn, deltaAccount);
                 }
             }
 
-            //Todo: Handle new admins
+            //Look for new admins
+            foreach(var p in request.player_profiles)
+            {
+                if(p.is_admin)
+                {
+                    //Grant this player permission to become an admin
+                    //This may potentially cause security problems, as ARK is forced to communicate without SSL
+                    //TODO
+                }
+            }
 
             //Respond
             await WriteInjestEndOfRequest();

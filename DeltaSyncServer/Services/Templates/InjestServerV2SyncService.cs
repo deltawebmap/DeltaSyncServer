@@ -1,4 +1,5 @@
 ﻿using DeltaSyncServer.Entities;
+using DeltaSyncServer.Tools.RpcSyncEngine;
 using LibDeltaSystem;
 using LibDeltaSystem.Tools;
 using Microsoft.AspNetCore.Http;
@@ -17,63 +18,66 @@ namespace DeltaSyncServer.Services.Templates
     /// <typeparam name="T">The actual, db, data source</typeparam>
     public abstract class InjestServerV2SyncService<I, T> : InjestServerAuthDeltaService
     {
-        public InjestServerV2SyncService(DeltaConnection conn, HttpContext e) : base(conn, e)
+        public InjestServerV2SyncService(DeltaConnection conn, HttpContext e, BaseRpcSyncEngine<I> rpcEngine) : base(conn, e)
         {
+            writes = new List<WriteModel<T>>();
+            this.rpcEngine = rpcEngine;
         }
+
+        private BaseRpcSyncEngine<I> rpcEngine;
+        private List<WriteModel<T>> writes;
+
+        public RevisionMappedDataPutRequest<I> request;
+        public IMongoCollection<T> collec;
 
         public override async Task OnRequest()
         {
-            //Decode content
-            RevisionMappedDataPutRequest<I> request = await DecodePOSTBody<RevisionMappedDataPutRequest<I>>();
-
-            //Get primal data
-            var primal = await Program.conn.GetPrimalDataPackage(server.mods);
-
-            //Get the collection
-            var collec = GetMongoCollection();
+            //Begin
+            await OnProcessingBegin();
 
             //Run updates
-            List<WriteModel<T>> writes = new List<WriteModel<T>>();
             foreach(var r in request.data)
             {
-                //Make command
-                var command = new UpdateOneModel<T>(CreateFilterDefinition(r), CreateUpdateDefinition(r, request.revision_id, request.revision_index));
-                command.IsUpsert = true;
-
-                //Add
-                writes.Add(command);
-
-                //Send RPC message
-                FireRPCEvent(r);
+                HandleItem(r);
             }
 
-            //Run
-            await collec.BulkWriteAsync(writes);
-
-            //Post update
-            await OnPostDbUpdate(request.data);
+            //End
+            await OnProcessingBegin();
 
             //Finish
             await WriteInjestEndOfRequest();
         }
 
-        /// <summary>
-        /// Called after we push DB updates, right before the end. Can be used to add additional functonality
-        /// </summary>
-        /// <returns></returns>
-        public virtual async Task OnPostDbUpdate(I[] data)
+        public virtual async Task OnProcessingBegin()
         {
+            //Decode content
+            request = await DecodePOSTBody<RevisionMappedDataPutRequest<I>>();
 
+            //Get the collection
+            collec = GetMongoCollection();
         }
 
-        /// <summary>
-        /// Fires an RPC event for an item
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        public async Task FireRPCEvent(I data)
+        public virtual async Task OnProcessingEnd()
         {
-            await RPCMessageTool.SendDbContentUpdateMessage(conn, GetRPCContentUpdateType(), GetRPCVersionOfItem(data), server._id, GetTribeIdFromItem(data));
+            //Write
+            if (writes.Count > 0)
+                await collec.BulkWriteAsync(writes);
+
+            //Send RPC
+            rpcEngine.SendAll(conn, server);
+        }
+
+        public virtual void HandleItem(I item)
+        {
+            //Make command
+            var command = new UpdateOneModel<T>(CreateFilterDefinition(item), CreateUpdateDefinition(item, request.revision_id, request.revision_index));
+            command.IsUpsert = true;
+
+            //Add
+            writes.Add(command);
+
+            //Add RPC command
+            rpcEngine.AddItem(item);
         }
 
         /// <summary>
@@ -95,26 +99,6 @@ namespace DeltaSyncServer.Services.Templates
         /// </summary>
         /// <returns></returns>
         public abstract IMongoCollection<T> GetMongoCollection();
-
-        /// <summary>
-        /// Returns the RPC content update type. 0 is dinos, for example
-        /// </summary>
-        /// <returns></returns>
-        public abstract LibDeltaSystem.RPC.Payloads.Entities.RPCSyncType GetRPCContentUpdateType();
-
-        /// <summary>
-        /// Returns the tribe ID for a provided item
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
-        public abstract int GetTribeIdFromItem(I item);
-
-        /// <summary>
-        /// Gets the version of an item to send over RPC
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
-        public abstract object GetRPCVersionOfItem(I item);
 
         public override async Task<bool> SetArgs(Dictionary<string, string> args)
         {

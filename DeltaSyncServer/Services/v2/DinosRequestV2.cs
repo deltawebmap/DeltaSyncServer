@@ -1,6 +1,7 @@
 ﻿using DeltaSyncServer.Entities.DinoPayload;
 using DeltaSyncServer.Entities.InventoriesPayload;
 using DeltaSyncServer.Services.Templates;
+using DeltaSyncServer.Tools.RpcSyncEngine;
 using LibDeltaSystem;
 using LibDeltaSystem.Db.Content;
 using LibDeltaSystem.Entities.CommonNet;
@@ -14,11 +15,11 @@ namespace DeltaSyncServer.Services.v2
 {
     public class DinosRequestV2 : InjestServerV2SyncInventoryService<DinoData, DbDino>
     {
-        public DinosRequestV2(DeltaConnection conn, HttpContext e) : base(conn, e)
+        public DinosRequestV2(DeltaConnection conn, HttpContext e) : base(conn, e, new RpcSyncEngineDinos())
         {
         }
 
-        private ulong GetDinoId(DinoData data)
+        public static ulong GetDinoId(DinoData data)
         {
             return Program.GetMultipartID((uint)data.id_1, (uint)data.id_2);
         }
@@ -90,7 +91,7 @@ namespace DeltaSyncServer.Services.v2
             };
         }
 
-        private static int[] ConvertToStatsInt(Dictionary<string, int> data)
+        public static int[] ConvertToStatsInt(Dictionary<string, int> data)
         {
             int[] values = new int[15];
             foreach (var v in data)
@@ -102,7 +103,7 @@ namespace DeltaSyncServer.Services.v2
             return values;
         }
 
-        private static float[] ConvertToStatsFloat(Dictionary<string, float> data)
+        public static float[] ConvertToStatsFloat(Dictionary<string, float> data)
         {
             float[] values = new float[15];
             foreach (var v in data)
@@ -114,45 +115,9 @@ namespace DeltaSyncServer.Services.v2
             return values;
         }
 
-        public override LibDeltaSystem.RPC.Payloads.Entities.RPCSyncType GetRPCContentUpdateType()
-        {
-            return LibDeltaSystem.RPC.Payloads.Entities.RPCSyncType.Dino;
-        }
-
         public override int GetTribeIdFromItem(DinoData item)
         {
             return item.tribe_id;
-        }
-
-        public override object GetRPCVersionOfItem(DinoData dino)
-        {
-            return new NetDino
-            {
-                tribe_id = dino.tribe_id,
-                dino_id = GetDinoId(dino).ToString(),
-                is_female = dino.is_female,
-                colors = dino.colors,
-                colors_hex = new string[6],
-                tamed_name = dino.name,
-                tamer_name = dino.tamer,
-                classname = Program.TrimArkClassname(dino.classname),
-                current_stats = ConvertToStatsFloat(dino.current_stats),
-                max_stats = ConvertToStatsFloat(dino.max_stats),
-                base_levelups_applied = ConvertToStatsInt(dino.points_wild),
-                tamed_levelups_applied = ConvertToStatsInt(dino.points_tamed),
-                base_level = dino.base_level,
-                level = dino.base_level + dino.extra_level,
-                experience = dino.experience,
-                is_baby = dino.baby,
-                baby_age = dino.baby_age,
-                next_imprint_time = dino.next_cuddle,
-                imprint_quality = dino.imprint_quality,
-                location = dino.location,
-                status = dino.status,
-                taming_effectiveness = 0,
-                is_cryo = false,
-                experience_points = dino.experience
-            };
         }
 
         public override InventoriesData GetInventoryDataOfObject(DinoData obj)

@@ -1,4 +1,5 @@
 ﻿using DeltaSyncServer.Entities.InventoriesPayload;
+using DeltaSyncServer.Tools.RpcSyncEngine;
 using LibDeltaSystem;
 using LibDeltaSystem.Db.Content;
 using LibDeltaSystem.Entities.CommonNet;
@@ -10,30 +11,30 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using static LibDeltaSystem.Db.Content.DbInventory;
+using static LibDeltaSystem.Entities.CommonNet.NetInventory;
 
 namespace DeltaSyncServer.Services.Templates
 {
     public abstract class InjestServerV2SyncInventoryService<I, T> : InjestServerV2SyncService<I, T>
     {
-        public InjestServerV2SyncInventoryService(DeltaConnection conn, HttpContext e) : base(conn, e)
+        public InjestServerV2SyncInventoryService(DeltaConnection conn, HttpContext e, BaseRpcSyncEngine<I> rpcEngine) : base(conn, e, rpcEngine)
         {
+            inventoryRpcEngine = new RpcSyncEngineInventories();
+            inventoryWrites = new List<WriteModel<DbInventory>>();
         }
 
-        public override async Task OnPostDbUpdate(I[] data)
+        private RpcSyncEngineInventories inventoryRpcEngine;
+        private List<WriteModel<DbInventory>> inventoryWrites;
+
+        public override async Task OnProcessingBegin()
         {
-            await base.OnPostDbUpdate(data);
-
-            //Process all inventories
-            Task[] tasks = new Task[data.Length];
-            for (int i = 0; i < data.Length; i++)
-                tasks[i] = ProcessNewInventory(data[i]);
-
-            //Wait for all to complete
-            await Task.WhenAll(tasks);
+            await base.OnProcessingBegin();
         }
 
-        private async Task ProcessNewInventory(I obj)
+        public override void HandleItem(I obj)
         {
+            base.HandleItem(obj);
+
             //Get inventory data
             InventoriesData inventory = GetInventoryDataOfObject(obj);
             if (inventory == null)
@@ -46,7 +47,7 @@ namespace DeltaSyncServer.Services.Templates
 
             //Convert objects
             DbInventory_InventoryItem[] items = new DbInventory_InventoryItem[inventory.items.Length];
-            for(int i = 0; i<items.Length; i+=1)
+            for (int i = 0; i < items.Length; i += 1)
             {
                 var data = inventory.items[i];
 
@@ -92,21 +93,40 @@ namespace DeltaSyncServer.Services.Templates
                 .SetOnInsert("server_id", server._id)
                 .SetOnInsert("tribe_id", tribe);
 
-            //Update or insert
-            var doc = await conn.content_inventories.FindOneAndUpdateAsync(filter, update, new FindOneAndUpdateOptions<DbInventory, DbInventory>
-            {
-                IsUpsert = true,
-                ReturnDocument = ReturnDocument.After
-            });
+            //Make command
+            var command = new UpdateOneModel<DbInventory>(filter, update);
+            command.IsUpsert = true;
 
-            //Send RPC update
-            try
+            //Add
+            inventoryWrites.Add(command);
+
+            //Convert RPC items
+            NetInventory_Item[] itemsConverted = new NetInventory_Item[items.Length];
+            for (var i = 0; i < items.Length; i += 1)
             {
-                await RPCMessageTool.SendDbContentUpdateMessage(conn, LibDeltaSystem.RPC.Payloads.Entities.RPCSyncType.Inventory, NetInventory.ConvertInventory(doc), server._id, tribe);
-            } catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message + ex.StackTrace);
+                itemsConverted[i] = NetInventory_Item.ConvertItem(items[i]);
             }
+
+            //Add RPC command
+            inventoryRpcEngine.AddItem(new NetInventory
+            {
+                holder_id = id.ToString(),
+                holder_type = type,
+                items = itemsConverted,
+                tribe_id = tribe
+            });
+        }
+
+        public override async Task OnProcessingEnd()
+        {
+            await base.OnProcessingEnd();
+
+            //Write
+            if (inventoryWrites.Count > 0)
+                await conn.content_inventories.BulkWriteAsync(inventoryWrites);
+
+            //Send RPC
+            inventoryRpcEngine.SendAll(conn, server);
         }
 
         public abstract InventoriesData GetInventoryDataOfObject(I obj);
@@ -114,5 +134,7 @@ namespace DeltaSyncServer.Services.Templates
         public abstract ulong GetArkIdOfObject(I obj);
 
         public abstract DbInventory_InventoryType GetStructureTypeOfObject(I obj);
+
+        public abstract int GetTribeIdFromItem(I obj);
     }
 }
