@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DeltaSyncServer": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\Roman\\Documents\\DeltaWebMap\\database_config.json 2003"
+    }
+  }
+}

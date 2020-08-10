@@ -42,7 +42,7 @@ namespace DeltaSyncServer.Services.Templates
             }
 
             //End
-            await OnProcessingBegin();
+            await OnProcessingEnd();
 
             //Finish
             await WriteInjestEndOfRequest();

@@ -93,7 +93,6 @@ namespace DeltaSyncServer.Services.v2
             {
                 //Fetch a user account
                 var deltaAccount = await conn.GetUserBySteamIdAsync(request.player_profiles[p.Index].steam_id);
-                conn.Log("PlayerProfilesRequestV2-NewPlayer", $"New player \"{deltaAccount.id}\" added", DeltaLogLevel.Debug);
                 if(deltaAccount != null)
                 {
                     await LibDeltaSystem.Tools.RPCMessageTool.SendUserServerJoined(conn, deltaAccount, server);
