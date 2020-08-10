@@ -25,7 +25,7 @@ namespace DeltaSyncServer.Services.v2
             //If there is no data, skip
             if (request.ids.Length == 0)
             {
-                await WriteInjestEndOfRequest();
+                await WriteIngestEndOfRequest();
                 return;
             }
 
@@ -33,7 +33,7 @@ namespace DeltaSyncServer.Services.v2
             if (request.type == "STRUCTURES")
                 await ExecuteStructures(request.ids);
 
-            await WriteInjestEndOfRequest();
+            await WriteIngestEndOfRequest();
         }
 
         public override async Task<bool> SetArgs(Dictionary<string, string> args)

@@ -45,7 +45,7 @@ namespace DeltaSyncServer.Services.Templates
             await OnProcessingEnd();
 
             //Finish
-            await WriteInjestEndOfRequest();
+            await WriteIngestEndOfRequest();
         }
 
         public virtual async Task OnProcessingBegin()

@@ -76,7 +76,7 @@ namespace DeltaSyncServer.Services.v2
             await Task.WhenAll(tasks);
 
             //Write response
-            await WriteInjestEndOfRequest();
+            await WriteIngestEndOfRequest();
         }
 
         public override async Task<bool> SetArgs(Dictionary<string, string> args)

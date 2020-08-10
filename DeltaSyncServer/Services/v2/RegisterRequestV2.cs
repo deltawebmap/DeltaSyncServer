@@ -3,6 +3,8 @@ using LibDeltaSystem.Db.System;
 using LibDeltaSystem.Tools;
 using LibDeltaSystem.WebFramework;
 using Microsoft.AspNetCore.Http;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -41,8 +43,19 @@ namespace DeltaSyncServer.Services.v2
 
             //Attempt to authenticate. It's OK of this fails.
             DbServer server = await Program.conn.AuthenticateServerTokenAsync(request.token);
+            ObjectId stateId = ObjectId.GenerateNewId();
             if (server == null)
-                server = await CreateNewServer(request);
+            {
+                //Create
+                server = await CreateNewServer(request, clientVersion, stateId);
+            } else
+            {
+                //Update info
+                await server.ExplicitUpdateAsync(conn, Builders<DbServer>.Update.Set("last_sync_state", stateId)
+                    .Set("last_connected_time", DateTime.UtcNow)
+                    .Set("last_pinged_time", DateTime.UtcNow)
+                    .Set("last_client_version", clientVersion));
+            }
 
             //Claim server if possible
             DbUser owner = await Program.conn.GetUserByServerSetupToken(request.user_token);
@@ -62,7 +75,8 @@ namespace DeltaSyncServer.Services.v2
                 system_version = Program.VERSION_MAJOR,
                 time = DateTime.UtcNow,
                 token = stateToken,
-                mod_enviornment = e.Request.Query["client_env"]
+                mod_enviornment = e.Request.Query["client_env"],
+                _id = stateId
             };
             await Program.conn.system_sync_states.InsertOneAsync(state);
 
@@ -87,7 +101,7 @@ namespace DeltaSyncServer.Services.v2
             public string server_id; //The ID of this server
         }
 
-        private async Task<DbServer> CreateNewServer(RequestPayload requestInfo)
+        private async Task<DbServer> CreateNewServer(RequestPayload requestInfo, int version, ObjectId stateId)
         {
             //Generate a token to use
             string token = SecureStringTool.GenerateSecureString(46);
@@ -109,7 +123,11 @@ namespace DeltaSyncServer.Services.v2
                 is_claimed = false,
                 secure_mode = true,
                 last_secure_mode_toggled = DateTime.UtcNow,
-                flags = 3
+                flags = 3,
+                last_client_version = version,
+                last_connected_time = DateTime.UtcNow,
+                last_pinged_time = DateTime.UtcNow,
+                last_sync_state = stateId
             };
 
             //Insert

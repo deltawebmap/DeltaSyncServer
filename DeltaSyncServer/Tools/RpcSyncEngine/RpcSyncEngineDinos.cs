@@ -42,7 +42,9 @@ namespace DeltaSyncServer.Tools.RpcSyncEngine
                 status = dino.status,
                 taming_effectiveness = 0,
                 is_cryo = false,
-                experience_points = dino.experience
+                experience_points = dino.experience,
+                is_alive = true,
+                last_sync_time = DateTime.UtcNow
             };
         }
 

@@ -39,7 +39,7 @@ namespace DeltaSyncServer.Services.v2
             await RPCMessageTool.SendUserArkRpcAck(conn, user_id, server._id, rpc_id, custom_data);
 
             //Write response
-            await WriteInjestEndOfRequest();
+            await WriteIngestEndOfRequest();
         }
 
         public override async Task<bool> SetArgs(Dictionary<string, string> args)

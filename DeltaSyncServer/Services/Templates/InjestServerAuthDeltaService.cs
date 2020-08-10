@@ -51,7 +51,7 @@ namespace DeltaSyncServer.Services.Templates
         /// Should be called to finish injest responses
         /// </summary>
         /// <returns></returns>
-        public async Task WriteInjestEndOfRequest()
+        public async Task WriteIngestEndOfRequest()
         {
             //Get next events
             var events = await conn.GetQueuedSyncCommandsForServerById(server._id, true, 10);

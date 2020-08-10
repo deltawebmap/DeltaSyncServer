@@ -18,7 +18,7 @@ namespace DeltaSyncServer.Tools.RpcSyncEngine
         {
             return new NetStructure
             {
-                classname = item.classname,
+                classname = Program.TrimArkClassname(item.classname),
                 has_inventory = item.inv != null,
                 location = item.location,
                 structure_id = item.id,

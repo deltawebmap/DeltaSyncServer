@@ -37,6 +37,7 @@ namespace DeltaSyncServer
             server.AddService(new CleanIdsDefinition());
             server.AddService(new RpcAckDefinition());
             server.AddService(new LiveDinosDefinition());
+            server.AddService(new PingRequestDefinition());
             server.AddService(new TestRequestDefinition());
 
             //Run

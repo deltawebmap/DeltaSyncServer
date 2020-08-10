@@ -59,7 +59,7 @@ namespace DeltaSyncServer.Services.v2
             }
 
             //Finish
-            await WriteInjestEndOfRequest();
+            await WriteIngestEndOfRequest();
         }
 
         public override async Task<bool> SetArgs(Dictionary<string, string> args)
