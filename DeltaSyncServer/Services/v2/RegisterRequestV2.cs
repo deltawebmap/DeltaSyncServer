@@ -57,11 +57,6 @@ namespace DeltaSyncServer.Services.v2
                     .Set("last_client_version", clientVersion));
             }
 
-            //Claim server if possible
-            DbUser owner = await Program.conn.GetUserByServerSetupToken(request.user_token);
-            if (owner != null && owner?._id != server.owner_uid)
-                await server.ClaimServer(conn, owner);
-
             //Generate a state token
             string stateToken = SecureStringTool.GenerateSecureString(56);
             while (!await SecureStringTool.CheckStringUniquenessAsync<DbSyncSavedState>(stateToken, Program.conn.system_sync_states))
@@ -85,7 +80,7 @@ namespace DeltaSyncServer.Services.v2
             {
                 refresh_token = server.token,
                 session_token = state.token,
-                is_claimed = server.is_claimed,
+                is_claimed = false,
                 server_id = server.id
             };
 
@@ -119,8 +114,6 @@ namespace DeltaSyncServer.Services.v2
                 has_custom_image = false,
                 latest_server_map = requestInfo.map,
                 mods = new string[0],
-                owner_uid = null,
-                is_claimed = false,
                 secure_mode = true,
                 last_secure_mode_toggled = DateTime.UtcNow,
                 flags = 3,

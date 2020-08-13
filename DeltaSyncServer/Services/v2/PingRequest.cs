@@ -33,6 +33,8 @@ namespace DeltaSyncServer.Services.v2
                 server_id = server._id,
                 session_id = session._id,
                 ticks_per_second = (float)(data.ticks / data.ping_delta),
+                avg_tick_seconds = (float)(data.ping_delta / data.ticks),
+                ping_delta = data.ping_delta,
                 time = DateTime.UtcNow
             };
 
