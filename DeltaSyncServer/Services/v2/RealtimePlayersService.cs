@@ -58,6 +58,18 @@ namespace DeltaSyncServer.Services.v2
             //Send to all players
             conn.network.SendRPCEventToServerId(LibDeltaSystem.RPC.RPCOpcode.RPCServer20011OnlinePlayersUpdated, msg, server._id);
 
+            //Update player profiles
+            List<WriteModel<DbPlayerProfile>> profileWrites = new List<WriteModel<DbPlayerProfile>>();
+            foreach(var p in data.players)
+            {
+                var filterBuilder = Builders<DbPlayerProfile>.Filter;
+                var updateBuilder = Builders<DbPlayerProfile>.Update;
+                var filter = filterBuilder.Eq("server_id", server._id) & filterBuilder.Eq("steam_id", p.sid);
+                var update = updateBuilder.Set("last_seen", DateTime.UtcNow).Set("x", p.loc.x).Set("y", p.loc.y).Set("z", p.loc.z).Set("yaw", p.loc.yaw);
+                profileWrites.Add(new UpdateOneModel<DbPlayerProfile>(filter, update));
+            }
+            await conn.content_player_profiles.BulkWriteAsync(profileWrites);
+
             //Write response
             await WriteIngestEndOfRequest();
         }
