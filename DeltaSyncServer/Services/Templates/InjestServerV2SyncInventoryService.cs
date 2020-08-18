@@ -63,9 +63,9 @@ namespace DeltaSyncServer.Services.Templates
                     flag |= 1 << 3;
 
                 //Get custom data
-                Dictionary<ushort, string> custom = new Dictionary<ushort, string>();
+                Dictionary<string, string> custom = new Dictionary<string, string>();
                 if (data.cname.Length > 0)
-                    custom.Add(0, data.cname);
+                    custom.Add("CNAME", data.cname);
 
                 //Add
                 items[i] = new DbInventory_InventoryItem

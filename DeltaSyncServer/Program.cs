@@ -22,7 +22,7 @@ namespace DeltaSyncServer
         public static ModRemoteConfig clientConfig;
 
         public const byte VERSION_MAJOR = 0;
-        public const byte VERSION_MINOR = 8;
+        public const byte VERSION_MINOR = 9;
 
         static void Main(string[] args)
         {
