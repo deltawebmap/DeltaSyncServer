@@ -62,7 +62,7 @@ namespace DeltaSyncServer.Services.v2
             //Create a response
             ResponsePayload response = new ResponsePayload
             {
-                delta_config = new ModRemoteConfig(),
+                delta_config = Program.clientConfig,
                 ini_settings = iniSettings,
                 start_allowed = true,
                 start_msg = "Connected! Welcome to the Delta Web Map beta!",

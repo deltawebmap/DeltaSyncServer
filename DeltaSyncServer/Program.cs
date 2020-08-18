@@ -1,6 +1,8 @@
-﻿using DeltaSyncServer.Services.Definitions;
+﻿using DeltaSyncServer.Entities;
+using DeltaSyncServer.Services.Definitions;
 using DeltaSyncServer.Services.Definitions.Tests;
 using LibDeltaSystem;
+using LibDeltaSystem.Db.Content;
 using LibDeltaSystem.Db.System;
 using LibDeltaSystem.WebFramework;
 using Microsoft.AspNetCore.Builder;
@@ -17,14 +19,18 @@ namespace DeltaSyncServer
     class Program
     {
         public static DeltaConnection conn;
+        public static ModRemoteConfig clientConfig;
 
         public const byte VERSION_MAJOR = 0;
-        public const byte VERSION_MINOR = 7;
+        public const byte VERSION_MINOR = 8;
 
         static void Main(string[] args)
         {
             //Connect to database
             conn = DeltaConnection.InitDeltaManagedApp(args, VERSION_MAJOR, VERSION_MINOR, new SyncCoreNet());
+
+            //Load client config
+            clientConfig = conn.GetUserConfigDefault("sync_clientconfig.json", new ModRemoteConfig());
 
             //Start server
             DeltaWebServer server = new DeltaWebServer(conn, conn.GetUserPort(0));
@@ -60,10 +66,7 @@ namespace DeltaSyncServer
 
         public static ulong GetMultipartID(uint u1, uint u2)
         {
-            byte[] buf = new byte[8];
-            BitConverter.GetBytes(u1).CopyTo(buf, 0);
-            BitConverter.GetBytes(u2).CopyTo(buf, 4);
-            return BitConverter.ToUInt64(buf, 0);
+            return DbDino.ZipperDinoId(u1, u2);
         }
     }
 }

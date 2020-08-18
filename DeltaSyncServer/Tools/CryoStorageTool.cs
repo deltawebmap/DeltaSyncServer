@@ -21,10 +21,10 @@ namespace DeltaSyncServer.Tools
 {
     public static class CryoStorageTool
     {
-        public static DbDino QueueDino(List<WriteModel<DbDino>> dinoActions, out DinosaurEntry entry, DbServer server, string inventoryId, ulong revisionId, byte revisionIndex, int inventoryType, ulong inventoryItemId, DeltaPrimalDataPackage pack, string request)
+        public static DbDino QueueDino(List<WriteModel<DbDino>> dinoActions, DbServer server, string inventoryId, ulong revisionId, byte revisionIndex, int inventoryType, ulong inventoryItemId, string request)
         {
             //Parse the dino data
-            DbDino dino = ParseDinoData(out entry, server, inventoryId, revisionId, revisionIndex, inventoryType, inventoryItemId, pack, request);
+            DbDino dino = ParseDinoData(server, inventoryId, revisionId, revisionIndex, inventoryType, inventoryItemId, request);
             if (dino == null)
                 return null;
 
@@ -43,7 +43,7 @@ namespace DeltaSyncServer.Tools
             return dino;
         }
 
-        private static DbDino ParseDinoData(out DinosaurEntry entry, DbServer server, string inventoryId, ulong revisionId, byte revisionIndex, int inventoryType, ulong inventoryItemId, DeltaPrimalDataPackage pack, string request)
+        private static DbDino ParseDinoData(DbServer server, string inventoryId, ulong revisionId, byte revisionIndex, int inventoryType, ulong inventoryItemId, string request)
         {
             //Decode data as bytes and read
             byte[] data = new byte[request.Length / 2];
@@ -56,11 +56,6 @@ namespace DeltaSyncServer.Tools
 
             //Get dino part
             ARKDinoDataObject d = parts[0];
-
-            //Get this dino entry
-            entry = pack.GetDinoEntry(d.name);
-            if (entry == null)
-                return null;
 
             //Convert colors
             List<string> colors = new List<string>();
@@ -88,7 +83,7 @@ namespace DeltaSyncServer.Tools
                 cryo_inventory_id = inventoryId,
                 dino_id = Program.GetMultipartID(d.GetPropertyByName<UInt32Property>("DinoID1").value, d.GetPropertyByName<UInt32Property>("DinoID2").value),
                 tribe_id = d.GetPropertyByName<IntProperty>("TargetingTeam").value,
-                tamed_name = d.GetStringProperty("TamedName", 0, entry.screen_name),
+                tamed_name = d.GetStringProperty("TamedName", 0, ""),
                 classname = Program.TrimArkClassname(d.name),
                 tamer_name = d.GetStringProperty("TamerString", 0, ""),
                 baby_age = d.GetFloatProperty("BabyAge", 0, 1),

@@ -46,15 +46,14 @@ namespace DeltaSyncServer.Services.v2
 
             //Run updates on players
             List<WriteModel<DbPlayerProfile>> playerUpdates = new List<WriteModel<DbPlayerProfile>>();
-            foreach (var tribe in request.player_profiles)
+            foreach (var user in request.player_profiles)
             {
+                //Get Steam info
                 string steamName;
                 string steamIcon;
                 try
                 {
-                    //Get Steam info
-                    var steam = await conn.GetSteamProfileById(tribe.steam_id);
-
+                    var steam = await conn.GetSteamProfileById(user.steam_id);
                     steamName = steam.name;
                     steamIcon = steam.icon_url;
                 } catch
@@ -65,16 +64,16 @@ namespace DeltaSyncServer.Services.v2
 
                 //Get filter
                 var filterBuilder = Builders<DbPlayerProfile>.Filter;
-                var filter = filterBuilder.Eq("steam_id", tribe.steam_id) & filterBuilder.Eq("server_id", server._id);
+                var filter = filterBuilder.Eq("steam_id", user.steam_id) & filterBuilder.Eq("server_id", server._id);
 
                 //Get update
                 var updateBuilder = Builders<DbPlayerProfile>.Update;
                 var update = updateBuilder.SetOnInsert("server_id", server._id)
-                    .Set("tribe_id", tribe.tribe_id)
+                    .Set("tribe_id", user.tribe_id)
                     .Set("name", steamName)
-                    .Set("ig_name", tribe.ark_name)
-                    .Set("ark_id", tribe.ark_id)
-                    .Set("steam_id", tribe.steam_id)
+                    .Set("ig_name", user.ark_name)
+                    .Set("ark_id", user.ark_id)
+                    .Set("steam_id", user.steam_id)
                     .Set("last_seen", DateTime.UtcNow)
                     .Set("icon", steamIcon);
 
@@ -107,7 +106,17 @@ namespace DeltaSyncServer.Services.v2
                 {
                     //Grant this player permission to become an admin
                     //This may potentially cause security problems, as ARK is forced to communicate without SSL
-                    //TODO
+                    //Find a Delta account with this
+                    var deltaAccount = await conn.GetUserBySteamIdAsync(p.steam_id);
+                    if (deltaAccount == null)
+                        continue;
+
+                    //Check if they already have admin
+                    if (server.admins.Contains(deltaAccount._id))
+                        continue;
+
+                    //Grant admin access
+                    await server.AddAdmin(conn, deltaAccount);
                 }
             }
 
