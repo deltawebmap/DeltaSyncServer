@@ -26,49 +26,53 @@ namespace DeltaSyncServer.Services.v2
             if (data == null)
                 return;
 
-            //Fetch steam profiles
-            Dictionary<string, DbSteamCache> profiles = new Dictionary<string, DbSteamCache>();
-            foreach(var p in data.players)
+            //Only run if we have new content
+            if(data.players.Length > 0)
             {
-                profiles.Add(p.sid, await conn.GetSteamProfileById(p.sid));
-            }
-
-            //Create RPC message
-            LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated msg = new LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated
-            {
-                players = new List<LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated.OnlinePlayer>(),
-                player_count = data.players.Length
-            };
-
-            //Add players with a steam ID
-            foreach(var p in data.players)
-            {
-                if(profiles[p.sid] != null)
+                //Fetch steam profiles
+                Dictionary<string, DbSteamCache> profiles = new Dictionary<string, DbSteamCache>();
+                foreach (var p in data.players)
                 {
-                    msg.players.Add(new LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated.OnlinePlayer
-                    {
-                        tribe_id = p.tribe,
-                        steam_name = profiles[p.sid].name,
-                        steam_icon = profiles[p.sid].icon_url,
-                        steam_id = p.sid
-                    });
+                    profiles.Add(p.sid, await conn.GetSteamProfileById(p.sid));
                 }
-            }
 
-            //Send to all players
-            conn.network.SendRPCEventToServerId(LibDeltaSystem.RPC.RPCOpcode.RPCServer20011OnlinePlayersUpdated, msg, server._id);
+                //Create RPC message
+                LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated msg = new LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated
+                {
+                    players = new List<LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated.OnlinePlayer>(),
+                    player_count = data.players.Length
+                };
 
-            //Update player profiles
-            List<WriteModel<DbPlayerProfile>> profileWrites = new List<WriteModel<DbPlayerProfile>>();
-            foreach(var p in data.players)
-            {
-                var filterBuilder = Builders<DbPlayerProfile>.Filter;
-                var updateBuilder = Builders<DbPlayerProfile>.Update;
-                var filter = filterBuilder.Eq("server_id", server._id) & filterBuilder.Eq("steam_id", p.sid);
-                var update = updateBuilder.Set("last_seen", DateTime.UtcNow).Set("x", p.loc.x).Set("y", p.loc.y).Set("z", p.loc.z).Set("yaw", p.loc.yaw);
-                profileWrites.Add(new UpdateOneModel<DbPlayerProfile>(filter, update));
+                //Add players with a steam ID
+                foreach (var p in data.players)
+                {
+                    if (profiles[p.sid] != null)
+                    {
+                        msg.players.Add(new LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated.OnlinePlayer
+                        {
+                            tribe_id = p.tribe,
+                            steam_name = profiles[p.sid].name,
+                            steam_icon = profiles[p.sid].icon_url,
+                            steam_id = p.sid
+                        });
+                    }
+                }
+
+                //Send to all players
+                conn.network.SendRPCEventToServerId(LibDeltaSystem.RPC.RPCOpcode.RPCServer20011OnlinePlayersUpdated, msg, server._id);
+
+                //Update player profiles
+                List<WriteModel<DbPlayerProfile>> profileWrites = new List<WriteModel<DbPlayerProfile>>();
+                foreach (var p in data.players)
+                {
+                    var filterBuilder = Builders<DbPlayerProfile>.Filter;
+                    var updateBuilder = Builders<DbPlayerProfile>.Update;
+                    var filter = filterBuilder.Eq("server_id", server._id) & filterBuilder.Eq("steam_id", p.sid);
+                    var update = updateBuilder.Set("last_seen", DateTime.UtcNow).Set("x", p.loc.x).Set("y", p.loc.y).Set("z", p.loc.z).Set("yaw", p.loc.yaw);
+                    profileWrites.Add(new UpdateOneModel<DbPlayerProfile>(filter, update));
+                }
+                await conn.content_player_profiles.BulkWriteAsync(profileWrites);
             }
-            await conn.content_player_profiles.BulkWriteAsync(profileWrites);
 
             //Write response
             await WriteIngestEndOfRequest();
