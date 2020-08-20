@@ -26,41 +26,41 @@ namespace DeltaSyncServer.Services.v2
             if (data == null)
                 return;
 
-            //Only run if we have new content
-            if(data.players.Length > 0)
+            //Fetch steam profiles
+            Dictionary<string, DbSteamCache> profiles = new Dictionary<string, DbSteamCache>();
+            foreach (var p in data.players)
             {
-                //Fetch steam profiles
-                Dictionary<string, DbSteamCache> profiles = new Dictionary<string, DbSteamCache>();
-                foreach (var p in data.players)
-                {
-                    profiles.Add(p.sid, await conn.GetSteamProfileById(p.sid));
-                }
+                profiles.Add(p.sid, await conn.GetSteamProfileById(p.sid));
+            }
 
-                //Create RPC message
-                LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated msg = new LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated
-                {
-                    players = new List<LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated.OnlinePlayer>(),
-                    player_count = data.players.Length
-                };
+            //Create RPC message
+            LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated msg = new LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated
+            {
+                players = new List<LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated.OnlinePlayer>(),
+                player_count = data.players.Length
+            };
 
-                //Add players with a steam ID
-                foreach (var p in data.players)
+            //Add players with a steam ID
+            foreach (var p in data.players)
+            {
+                if (profiles[p.sid] != null)
                 {
-                    if (profiles[p.sid] != null)
+                    msg.players.Add(new LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated.OnlinePlayer
                     {
-                        msg.players.Add(new LibDeltaSystem.RPC.Payloads.Server.RPCPayload20011OnlinePlayersUpdated.OnlinePlayer
-                        {
-                            tribe_id = p.tribe,
-                            steam_name = profiles[p.sid].name,
-                            steam_icon = profiles[p.sid].icon_url,
-                            steam_id = p.sid
-                        });
-                    }
+                        tribe_id = p.tribe,
+                        steam_name = profiles[p.sid].name,
+                        steam_icon = profiles[p.sid].icon_url,
+                        steam_id = p.sid
+                    });
                 }
+            }
 
-                //Send to all players
-                conn.network.SendRPCEventToServerId(LibDeltaSystem.RPC.RPCOpcode.RPCServer20011OnlinePlayersUpdated, msg, server._id);
+            //Send to all players
+            conn.network.SendRPCEventToServerId(LibDeltaSystem.RPC.RPCOpcode.RPCServer20011OnlinePlayersUpdated, msg, server._id);
 
+            //Only run if we have new content
+            if (data.players.Length > 0)
+            {
                 //Update player profiles
                 List<WriteModel<DbPlayerProfile>> profileWrites = new List<WriteModel<DbPlayerProfile>>();
                 foreach (var p in data.players)
