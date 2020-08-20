@@ -51,7 +51,7 @@ namespace DeltaSyncServer.Services.Templates
         public virtual async Task OnProcessingBegin()
         {
             //Decode content
-            request = await DecodePOSTBody<RevisionMappedDataPutRequest<I>>();
+            request = await DecodePOSTBodyArkPatch<RevisionMappedDataPutRequest<I>>();
 
             //Get the collection
             collec = GetMongoCollection();

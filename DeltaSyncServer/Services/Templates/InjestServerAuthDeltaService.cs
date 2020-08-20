@@ -7,6 +7,7 @@ using MongoDB.Driver;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -45,6 +46,37 @@ namespace DeltaSyncServer.Services.Templates
             }
 
             return true;
+        }
+
+
+
+        /// <summary>
+        /// Decodes the request data, but patches ARK encoding errors
+        /// </summary>
+        /// <typeparam name="T">The type of data to serialize to</typeparam>
+        /// <returns></returns>
+        public async Task<T> DecodePOSTBodyArkPatch<T>()
+        {
+            //Read stream
+            string buffer;
+            using (StreamReader sr = new StreamReader(e.Request.Body))
+                buffer = await sr.ReadToEndAsync();
+
+            //Look to see if the content contains "nan,". This is sent as an invalid float from the ARK serializer. I don't know why it happens.
+            //I asked about this on the ARK Modding Community Discord server here: https://discordapp.com/channels/153690873186484224/154037794585575424/745828554935107621
+            //It isn't a nice solution, but we'll find and replace "nan," with "0". This may catch names containing "nan,", but the likelyhood of this happening unintentionally is near zero and even if it does happen it's a very safe patch
+            //We'll log it if it does appear in case the problem solves itself
+            if (buffer.Contains("nan,"))
+            {
+                //Log
+                conn.Log("DecodePOSTBodyArkPatch", "Found invalid NAN data in ARK serialized json. Patching...", DeltaLogLevel.Alert);
+
+                //Patch
+                buffer = buffer.Replace("nan,", "0,");
+            }
+
+            //Assume this is JSON
+            return JsonConvert.DeserializeObject<T>(buffer);
         }
 
         /// <summary>
