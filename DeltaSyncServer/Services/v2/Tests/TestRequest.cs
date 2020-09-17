@@ -1,5 +1,6 @@
 ﻿using DeltaSyncServer.Services.Templates;
 using LibDeltaSystem;
+using LibDeltaSystem.WebFramework;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace DeltaSyncServer.Services.v2.Tests
 {
-    public class TestRequest : InjestServerAuthDeltaService
+    public class TestRequest : DeltaWebService
     {
         public TestRequest(DeltaConnection conn, HttpContext e) : base(conn, e)
         {
@@ -17,10 +18,9 @@ namespace DeltaSyncServer.Services.v2.Tests
 
         public override async Task OnRequest()
         {
-            string r;
-            using (StreamReader sr = new StreamReader(e.Request.Body))
-                r = await sr.ReadToEndAsync();
-            Console.WriteLine(r);
+            /*using (FileStream fs = new FileStream("E:\\test.bin", FileMode.Create))
+                await e.Request.Body.CopyToAsync(fs);
+            Console.WriteLine("Written");*/
         }
 
         public override async Task<bool> SetArgs(Dictionary<string, string> args)
