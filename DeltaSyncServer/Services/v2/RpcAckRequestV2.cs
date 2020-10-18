@@ -36,7 +36,7 @@ namespace DeltaSyncServer.Services.v2
             }
 
             //Send RPC message to user
-            await RPCMessageTool.SendUserArkRpcAck(conn, user_id, server._id, rpc_id, custom_data);
+            conn.events.OnUserArkRpcCallback(user_id, server._id, rpc_id, custom_data);
 
             //Write response
             await WriteIngestEndOfRequest();

@@ -94,8 +94,8 @@ namespace DeltaSyncServer.Services.v2
                 var deltaAccount = await conn.GetUserBySteamIdAsync(request.player_profiles[p.Index].steam_id);
                 if(deltaAccount != null)
                 {
-                    await LibDeltaSystem.Tools.RPCMessageTool.SendUserServerJoined(conn, deltaAccount, server);
-                    LibDeltaSystem.Tools.RPCMessageTool.SystemNotifyUserGroupReset(conn, deltaAccount);
+                    conn.events.NotifyUserGroupsUpdated(deltaAccount._id);
+                    conn.events.OnUserServerJoined(server, deltaAccount);
                 }
             }
 

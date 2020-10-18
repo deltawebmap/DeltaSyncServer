@@ -30,5 +30,16 @@ namespace DeltaSyncServer.Entities
         };
 
         public float modules_realtimeplayers_refreshtime = 3;
+
+        public ModRemoteConfig_DeltaSyncContent content_dinos_config = new ModRemoteConfig_DeltaSyncContent();
+        public ModRemoteConfig_DeltaSyncContent content_dinos_inventories_config = new ModRemoteConfig_DeltaSyncContent();
+        public ModRemoteConfig_DeltaSyncContent content_structures_config = new ModRemoteConfig_DeltaSyncContent();
+        public ModRemoteConfig_DeltaSyncContent content_structures_inventories_config = new ModRemoteConfig_DeltaSyncContent();
+    }
+
+    public class ModRemoteConfig_DeltaSyncContent
+    {
+        public float tickrate = 1;
+        public int max_chunk_size = 50;
     }
 }

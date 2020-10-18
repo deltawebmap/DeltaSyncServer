@@ -109,7 +109,7 @@ namespace DeltaSyncServer.Services.v2
             {
                 display_name = requestInfo.name,
                 _id = MongoDB.Bson.ObjectId.GenerateNewId(),
-                image_url = DbServer.StaticGetPlaceholderIcon(Program.conn, requestInfo.name),
+                image_url = Program.conn.hosts.master + "/default_server_icon.png",
                 token = token,
                 has_custom_image = false,
                 latest_server_map = requestInfo.map,

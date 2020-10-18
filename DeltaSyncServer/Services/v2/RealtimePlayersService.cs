@@ -44,7 +44,7 @@ namespace DeltaSyncServer.Services.v2
             }
 
             //Send to all players
-            conn.network.SendRPCEventToServerId(LibDeltaSystem.RPC.RPCOpcode.RPCServer20011OnlinePlayersUpdated, msg, server._id);
+            RPCMessageTool.SendRPCMsgToServer(conn, LibDeltaSystem.RPC.RPCOpcode.RPCServer20011OnlinePlayersUpdated, msg, server._id);
 
             //Only run if we have new content
             if (data.players.Length > 0)

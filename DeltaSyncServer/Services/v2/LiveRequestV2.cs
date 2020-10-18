@@ -59,7 +59,8 @@ namespace DeltaSyncServer.Services.v2
                 };
 
                 //Create and send RPC message
-                tasks.Add(LibDeltaSystem.Tools.RPCMessageTool.SendDbUpdatePartial(conn, type, server._id, r.tribeId, id.ToString(), update));
+                //TODO
+                //tasks.Add(LibDeltaSystem.Tools.RPCMessageTool.SendDbUpdatePartial(conn, type, server._id, r.tribeId, id.ToString(), update));
 
                 //Run update for this
                 Task updateTask;
