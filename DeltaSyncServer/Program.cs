@@ -22,7 +22,7 @@ namespace DeltaSyncServer
         public static ModRemoteConfig clientConfig;
 
         public const byte VERSION_MAJOR = 0;
-        public const byte VERSION_MINOR = 13;
+        public const byte VERSION_MINOR = 15;
 
         static void Main(string[] args)
         {
@@ -30,19 +30,18 @@ namespace DeltaSyncServer
             conn = DeltaConnection.InitDeltaManagedApp(args, DeltaCoreNetServerType.API_SYNC, VERSION_MAJOR, VERSION_MINOR);
 
             //Load client config
-            clientConfig = conn.GetUserConfig("sync_clientconfig.json", new ModRemoteConfig()).GetAwaiter().GetResult();
+            clientConfig = new ModRemoteConfig(); // conn.GetUserConfig("sync_clientconfig.json", new ModRemoteConfig()).GetAwaiter().GetResult();
 
             //Start server
             DeltaWebServer server = new DeltaWebServer(conn, conn.GetUserPort(0));
             server.AddService(new ConfigRequestDefinition());
             server.AddService(new RegisterRequestDefinition());
-            server.AddService(new LiveRequestDefinition());
             server.AddService(new PlayerProfilesRequestDefinition());
             server.AddService(new CleanIdsDefinition());
             server.AddService(new RpcAckDefinition());
             server.AddService(new PingRequestDefinition());
             server.AddService(new RealtimePlayersDefinition());
-            server.AddService(new TestRequestDefinition());
+            //server.AddService(new TestRequestDefinition());
 
             //Run
             server.RunAsync().GetAwaiter().GetResult();

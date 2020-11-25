@@ -81,7 +81,8 @@ namespace DeltaSyncServer.Services.v2
                 refresh_token = server.token,
                 session_token = state.token,
                 is_claimed = false,
-                server_id = server.id
+                server_id = server.id,
+                content_server_host = server.game_content_server_hostname
             };
 
             //Write response
@@ -94,6 +95,7 @@ namespace DeltaSyncServer.Services.v2
             public string session_token; //The state token to use
             public bool is_claimed; //Has this been claimed
             public string server_id; //The ID of this server
+            public string content_server_host; //Host of this server's content server
         }
 
         private async Task<DbServer> CreateNewServer(RequestPayload requestInfo, int version, ObjectId stateId)
