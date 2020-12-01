@@ -116,7 +116,9 @@ namespace DeltaSyncServer.Services.v2
                         continue;
 
                     //Grant admin access
-                    await server.AddAdmin(conn, deltaAccount);
+                    await server.GetUpdateBuilder(conn)
+                        .AddAdmin(deltaAccount)
+                        .Apply();
                 }
             }
 

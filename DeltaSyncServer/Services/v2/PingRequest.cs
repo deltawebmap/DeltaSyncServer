@@ -42,7 +42,9 @@ namespace DeltaSyncServer.Services.v2
             await conn.system_server_pings.InsertOneAsync(ping);
 
             //Update server info
-            await server.ExplicitUpdateAsync(conn, Builders<DbServer>.Update.Set("last_pinged_time", DateTime.UtcNow));
+            await server.GetUpdateBuilder(conn)
+                .UpdateLastSyncPingedTime(DateTime.UtcNow)
+                .Apply();
 
             //Write response
             await WriteIngestEndOfRequest();

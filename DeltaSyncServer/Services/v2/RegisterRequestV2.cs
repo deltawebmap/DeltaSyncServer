@@ -51,10 +51,12 @@ namespace DeltaSyncServer.Services.v2
             } else
             {
                 //Update info
-                await server.ExplicitUpdateAsync(conn, Builders<DbServer>.Update.Set("last_sync_state", stateId)
-                    .Set("last_connected_time", DateTime.UtcNow)
-                    .Set("last_pinged_time", DateTime.UtcNow)
-                    .Set("last_client_version", clientVersion));
+                await server.GetUpdateBuilder(conn)
+                    .UpdateLastSyncState(stateId)
+                    .UpdateLastSyncConnectedTime(DateTime.UtcNow)
+                    .UpdateLastSyncPingedTime(DateTime.UtcNow)
+                    .UpdateLastSyncClientVersion(clientVersion)
+                    .Apply();
             }
 
             //Generate a state token
@@ -116,9 +118,8 @@ namespace DeltaSyncServer.Services.v2
                 has_custom_image = false,
                 latest_server_map = requestInfo.map,
                 mods = new string[0],
-                secure_mode = true,
                 last_secure_mode_toggled = DateTime.UtcNow,
-                flags = 3,
+                flags = 0b00000110,
                 last_client_version = version,
                 last_connected_time = DateTime.UtcNow,
                 last_pinged_time = DateTime.UtcNow,
